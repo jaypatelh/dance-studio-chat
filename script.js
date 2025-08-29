@@ -422,7 +422,7 @@ function getSampleData() {
     ];
 }
 
-// Display all classes in the grid
+// Display all classes in accordion format grouped by day
 function displayAllClasses() {
     const grid = document.getElementById('class-grid');
     
@@ -440,20 +440,88 @@ function displayAllClasses() {
         return;
     }
     
+    // Group classes by day
+    const classesByDay = {};
+    const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     
-    allClasses.forEach((cls, index) => {
-        try {
-            const card = createClassCard(cls);
-            if (card) {
-                grid.appendChild(card);
-            } else {
-                console.error('Failed to create card for class:', cls);
-            }
-        } catch (error) {
-            console.error('Error creating class card:', error, 'Class data:', cls);
+    // Initialize all days
+    dayOrder.forEach(day => {
+        classesByDay[day] = [];
+    });
+    
+    // Group classes
+    allClasses.forEach(cls => {
+        const day = cls.day || 'Unknown';
+        if (classesByDay[day]) {
+            classesByDay[day].push(cls);
         }
     });
     
+    // Create accordion structure
+    grid.innerHTML = '<div class="classes-accordion"></div>';
+    const accordion = grid.querySelector('.classes-accordion');
+    
+    dayOrder.forEach(day => {
+        const dayClasses = classesByDay[day];
+        if (dayClasses.length === 0) return; // Skip days with no classes
+        
+        const daySection = document.createElement('div');
+        daySection.className = 'accordion-section';
+        
+        daySection.innerHTML = `
+            <div class="accordion-header" data-day="${day}">
+                <h3>${day}</h3>
+                <span class="class-count">${dayClasses.length} class${dayClasses.length !== 1 ? 'es' : ''}</span>
+                <span class="accordion-toggle">▼</span>
+            </div>
+            <div class="accordion-content">
+                <div class="day-classes-grid"></div>
+            </div>
+        `;
+        
+        const classesGrid = daySection.querySelector('.day-classes-grid');
+        
+        // Add classes for this day
+        dayClasses.forEach(cls => {
+            try {
+                const card = createClassCard(cls);
+                if (card) {
+                    classesGrid.appendChild(card);
+                }
+            } catch (error) {
+                console.error('Error creating class card:', error, 'Class data:', cls);
+            }
+        });
+        
+        accordion.appendChild(daySection);
+    });
+    
+    // Add click handlers for accordion
+    setupAccordionHandlers();
+}
+
+// Setup accordion click handlers
+function setupAccordionHandlers() {
+    document.querySelectorAll('.accordion-header').forEach(header => {
+        header.addEventListener('click', () => {
+            const section = header.parentElement;
+            const content = section.querySelector('.accordion-content');
+            const toggle = header.querySelector('.accordion-toggle');
+            
+            // Toggle this section
+            const isOpen = section.classList.contains('open');
+            
+            if (isOpen) {
+                section.classList.remove('open');
+                content.style.maxHeight = '0';
+                toggle.textContent = '▼';
+            } else {
+                section.classList.add('open');
+                content.style.maxHeight = content.scrollHeight + 'px';
+                toggle.textContent = '▲';
+            }
+        });
+    });
 }
 
 // Process sheet data from Google Sheets
