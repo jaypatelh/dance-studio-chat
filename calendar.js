@@ -219,18 +219,18 @@ class BookingCalendar {
         `;
         
         try {
-            // Save to Google Sheets - create basic booking data if bookingInfo is null
+            // Save to Google Sheets - create booking data with contact info
+            const timeDisplay = typeof timeStr === 'object' ? timeStr.label : timeStr;
             const bookingData = {
                 date: dateStr,
-                time: timeStr,
+                time: timeDisplay,
                 timestamp: new Date().toISOString(),
-                ...(this.bookingInfo || {})
+                name: this.bookingInfo?.name || '',
+                email: this.bookingInfo?.email || '',
+                phone: this.bookingInfo?.phone || ''
             };
             
             await this.saveBookingToSheets(bookingData);
-            
-            // Format the time properly - timeStr is an object with time and label properties
-            const timeDisplay = typeof timeStr === 'object' ? timeStr.label : timeStr;
             
             this.container.innerHTML = `
                 <div class="booking-confirmation">
@@ -450,6 +450,7 @@ class BookingCalendar {
         this.selectedDate = null;
         this.selectedTime = null;
     }
+    
 }
 
 // Export for use in other files

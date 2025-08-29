@@ -870,10 +870,16 @@ function showBookingForm() {
         // Scroll to show the calendar
         scrollToBottom();
         
-        // Initialize calendar
+        // Initialize calendar with contact info
         const calendarContainer = form.querySelector('#booking-calendar');
         if (window.BookingCalendar && calendarContainer) {
             bookingCalendar = new window.BookingCalendar(calendarContainer);
+            // Pass the contact info to the calendar
+            bookingCalendar.bookingInfo = {
+                name: name,
+                email: email,
+                phone: phone
+            };
             bookingCalendar.render();
         } else {
             console.error('BookingCalendar not available or container not found');
