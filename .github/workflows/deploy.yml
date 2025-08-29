@@ -1,0 +1,47 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]  # Run on pushes to the main branch
+  workflow_dispatch:  # Allow manual triggers
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (if needed)
+        run: |
+          # Add build commands here if your project needs building
+          echo "No build step needed for static site"
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+        with:
+          static_site_generator: 'jekyll'
+          enable_jekyll: false  # Disable Jekyll since we have a static site
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: './'  # The root directory of your site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
