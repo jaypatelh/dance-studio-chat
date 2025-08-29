@@ -1,6 +1,6 @@
 // Configuration - placeholders will be replaced during build process
 const config = {
-    groqApiKey: '{{GROQ_API_KEY}}',
+    openRouterApiKey: '{{OPENROUTER_API_KEY}}',
     googleApiKey: '{{GOOGLE_API_KEY}}'
 };
 

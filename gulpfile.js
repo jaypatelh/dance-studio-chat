@@ -6,7 +6,7 @@ require('dotenv').config();
 // Build task for production deployment
 gulp.task('build', () => {
   return gulp.src('config.js')
-    .pipe(replace('{{GROQ_API_KEY}}', process.env.GROQ_API_KEY || ''))
+    .pipe(replace('{{OPENROUTER_API_KEY}}', process.env.OPENROUTER_API_KEY || ''))
     .pipe(replace('{{GOOGLE_API_KEY}}', process.env.GOOGLE_API_KEY || ''))
     .pipe(gulp.dest('.'));
 });
@@ -15,7 +15,7 @@ gulp.task('build', () => {
 gulp.task('build:dev', gulp.parallel(
   () => {
     return gulp.src('config.js')
-      .pipe(replace('{{GROQ_API_KEY}}', process.env.GROQ_API_KEY || ''))
+      .pipe(replace('{{OPENROUTER_API_KEY}}', process.env.OPENROUTER_API_KEY || ''))
       .pipe(replace('{{GOOGLE_API_KEY}}', process.env.GOOGLE_API_KEY || ''))
       .pipe(rename('config.dev.js'))
       .pipe(gulp.dest('.'));
@@ -23,6 +23,7 @@ gulp.task('build:dev', gulp.parallel(
   () => {
     return gulp.src('index.html')
       .pipe(replace('config.js', 'config.dev.js'))
+      .pipe(replace('conversation-llm.js', 'conversation-llm.js'))
       .pipe(rename('index.dev.html'))
       .pipe(gulp.dest('.'));
   }

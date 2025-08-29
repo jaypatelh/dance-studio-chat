@@ -21,7 +21,7 @@
             </div>
             
             <div class="chat-input-container">
-                <input type="text" id="user-input" placeholder="Ask me about dance classes..." onkeypress="handleKeyPress(event)">
+                <input type="text" id="user-input" placeholder="Ask me about dance classes, billing, policies, or anything about our studio..." onkeypress="handleKeyPress(event)">
                 <button id="send-btn" onclick="handleSendMessage()">
                     <i class="fas fa-paper-plane"></i>
                 </button>
@@ -44,6 +44,8 @@
     </footer>
 
     <script src="config.js"></script>
+    <script src="studio-context.js"></script>
+    <script src="conversation-llm.js"></script>
     <script src="script.js"></script>
     <script src="calendar.js"></script>
 </body>

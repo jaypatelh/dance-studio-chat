@@ -16,13 +16,17 @@ const AUTO_SCROLL = false;
 let allClasses = [];
 
 // Track conversation state
-let conversationState = {
-    waitingForAge: false,
-    waitingForStyle: false,
-    waitingForDay: false,
+const conversationState = {
+    conversationHistory: [],
+    userPreferences: {
+        age: null,
+        style: null,
+        dayPreference: null
+    },
+    currentClasses: [],
     waitingForBookingConfirmation: false,
     waitingForBookingInfo: false,
-    userPreferences: {}
+    phone: ''
 };
 
 // Store booking info
@@ -47,24 +51,32 @@ window.onload = function() {
     // Add welcome message after a short delay
     setTimeout(() => {
         const welcomeMessage = [
-            "👋 Hi there! I'm your Dance Class Assistant. Let's find the perfect dance class!",
+            "👋 Hi there! I'm your Dance Studio Assistant. I can help you with:",
             "",
-            "I'll ask you a few questions to understand what you're looking for.",
+            "🩰 **Finding dance classes** - Tell me your child's age, preferred style, and days",
+            "💳 **Billing & payment questions** - Tuition, discounts, payment plans",
+            "📋 **Studio policies** - Dress code, attendance, makeup classes",
+            "🏢 **General studio info** - Facilities, contact info, programs",
             "",
-            "First, how old is your child? (e.g., '5 years old' or 'She\'s 7')"
+            "What would you like to know about our studio today?"
         ].join('\n');
         
-        conversationState.waitingForAge = true;
+        // Initialize conversation history with welcome message
+        conversationState.conversationHistory.push({
+            role: 'assistant',
+            content: welcomeMessage
+        });
         addBotMessage(welcomeMessage);
     }, 500); // Short delay to ensure classes are loaded
 };
 
-// Handle user responses
+// Handle user responses with LLM-driven conversation
 async function processUserResponse(message, event) {
     // Handle "Search again" button click
     if (event && event.target && event.target.classList.contains('search-again')) {
-        conversationState.waitingForAge = true;
-        conversationState.userPreferences = {};
+        conversationState.conversationHistory = [];
+        conversationState.userPreferences = { age: null, style: null, dayPreference: null };
+        conversationState.currentClasses = [];
         addBotMessage("Let's find more classes! What's your child's age?");
         return;
     }
@@ -84,98 +96,108 @@ async function processUserResponse(message, event) {
         return;
     }
     
-    if (conversationState.waitingForAge) {
-        // Extract age from message (simple number extraction)
-        const ageMatch = message.match(/\d+/);
-        if (ageMatch) {
-            conversationState.userPreferences.age = parseInt(ageMatch[0]);
-            conversationState.waitingForAge = false;
-            conversationState.waitingForStyle = true;
+    // Add user message to conversation history
+    conversationState.conversationHistory.push({
+        role: 'user',
+        content: message
+    });
+    
+    // Show loading indicator
+    const loadingId = showLoadingIndicator("Thinking...");
+    
+    try {
+        // Get response from conversation management LLM
+        const response = await getConversationResponse(message, conversationState);
+        
+        // Handle the response based on its action
+        if (response.action === 'get_classes') {
+            // Only call class recommendation LLM if we have age and preferences have changed
+            const hasAge = response.preferences && response.preferences.age;
+            const preferencesChanged = !conversationState.userPreferences || 
+                JSON.stringify(conversationState.userPreferences) !== JSON.stringify(response.preferences);
             
-            setTimeout(() => {
-                addBotMessage([
-                    `Great! I see your child is ${conversationState.userPreferences.age} years old.`,
-                    "",
-                    "What style of dance are you interested in? (e.g., ballet, hip hop, jazz, tap, or 'not sure')"
-                ].join('\n'));
-            }, 500);
-        } else {
-            addBotMessage("I didn't catch that. Could you tell me your child's age? For example, '5 years old' or 'She's 7'");
-        }
-    } 
-    else if (conversationState.waitingForStyle) {
-        conversationState.userPreferences.style = message.toLowerCase();
-        conversationState.waitingForStyle = false;
-        conversationState.waitingForDay = true;
-        
-        setTimeout(() => {
-            addBotMessage([
-                `Got it! You're interested in ${conversationState.userPreferences.style}.`,
-                "",
-                "Do you have a preferred day of the week for classes? (e.g., 'Monday', 'weekends', or 'any day')"
-            ].join('\n'));
-        }, 500);
-    }
-    else if (conversationState.waitingForDay) {
-        conversationState.userPreferences.dayPreference = message.toLowerCase();
-        conversationState.waitingForDay = false;
-        
-        // Show loading indicator while processing
-        const loadingId = showLoadingIndicator("Finding the perfect classes for you...");
-        
-        try {
-            // Get recommendations from LLM
-            const recommendedClasses = await getClassRecommendations(conversationState.userPreferences);
-            
-            if (recommendedClasses.length > 0) {
-                // Check if these are direct or closest matches
-                const matchType = recommendedClasses[0]?.matchType || 'direct';
-                const messageText = matchType === 'direct' 
-                    ? "Here are some classes that match your preferences:"
-                    : "I couldn't find perfect matches, but here are some similar classes that might work:";
+            if (hasAge && preferencesChanged) {
+                // Show loading message for class search
+                const retryLoadingId = showLoadingIndicator("Searching for classes...");
                 
-                addBotMessage([
-                    messageText,
-                    ""
-                ].join('\n'), recommendedClasses);
-            } else {
-                // If no matches from LLM, try a simple fallback based on age
-                console.log('No LLM matches, trying fallback matching...');
-                const fallbackClasses = allClasses.filter(cls => {
-                    if (!conversationState.userPreferences.age) return true;
+                try {
+                    // Extract preferences and get class recommendations
+                    const classes = await getClassRecommendations(response.preferences);
+                    conversationState.currentClasses = classes;
+                    conversationState.userPreferences = response.preferences;
                     
-                    const ageRange = cls.ageRange || '';
-                    if (ageRange.includes('-')) {
-                        const [min, max] = ageRange.split('-').map(n => parseInt(n.trim()));
-                        return conversationState.userPreferences.age >= min && conversationState.userPreferences.age <= max;
+                    removeLoadingIndicator(retryLoadingId);
+                    
+                    if (classes.length > 0) {
+                        const matchType = classes[0]?.matchType || 'direct';
+                        // Use the LLM's explanation text which now includes compromise details for closest matches
+                        const messageText = classes[0]?.text || (matchType === 'direct' 
+                            ? "Here are some classes that match your preferences:"
+                            : "I found some similar classes that might work:");
+                        
+                        addBotMessage(messageText, classes);
+                    } else {
+                        addBotMessage(response.message || "I couldn't find any classes that match your preferences. Would you like to schedule a call with our studio owner to discuss options?");
                     }
-                    return true;
-                }).slice(0, 3); // Limit to 3 classes
-                
-                if (fallbackClasses.length > 0) {
-                    addBotMessage([
-                        "Here are some classes that might work for your child:",
-                        ""
-                    ].join('\n'), fallbackClasses);
-                } else {
-                    addBotMessage("I couldn't find any classes that match your criteria.");
+                    
+                    displayAllClasses();
+                } catch (classError) {
+                    removeLoadingIndicator(retryLoadingId);
+                    addBotMessage("I'm having trouble accessing our class database right now. Please try again in a moment, or schedule a call with our studio owner for immediate assistance.");
+                }
+            } else if (!hasAge) {
+                // No age provided, just show the conversation response
+                addBotMessage(response.message);
+            } else {
+                // Preferences haven't changed, show existing classes
+                addBotMessage(response.message);
+                if (conversationState.currentClasses.length > 0) {
+                    displayAllClasses();
                 }
             }
+        } else if (response.action === 'refine_classes') {
+            // Show loading for class refinement
+            const refineLoadingId = showLoadingIndicator("Finding updated classes...");
             
-            // Keep the grid updated but don't scroll to it
-            displayAllClasses();
-            
-        } catch (error) {
-            console.error('Error getting class recommendations:', error);
-            addBotMessage("I'm having trouble finding classes right now. Please try again later.");
-        } finally {
-            removeLoadingIndicator(loadingId);
+            try {
+                // Refine existing class suggestions
+                const refinedClasses = await refineClassSuggestions(response.preferences, conversationState.currentClasses);
+                conversationState.currentClasses = refinedClasses;
+                conversationState.userPreferences = { ...conversationState.userPreferences, ...response.preferences };
+                
+                removeLoadingIndicator(refineLoadingId);
+                
+                if (refinedClasses.length > 0) {
+                    // Use the LLM's explanation text for refined classes too
+                    const messageText = refinedClasses[0]?.text || response.message || "Here are the updated class suggestions:";
+                    addBotMessage(messageText, refinedClasses);
+                    displayAllClasses();
+                } else {
+                    addBotMessage(response.message || "I couldn't find classes matching those specific requirements. Would you like to schedule a call to discuss other options?");
+                }
+            } catch (refineError) {
+                removeLoadingIndicator(refineLoadingId);
+                addBotMessage("I'm having trouble updating the class suggestions right now. Please try again in a moment.");
+            }
+        } else if (response.action === 'schedule_call') {
+            // Suggest scheduling a call
+            addBotMessage(response.message);
+        } else {
+            // Regular conversation response
+            addBotMessage(response.message);
         }
         
-        // Reset conversation state for a new query
-        setTimeout(() => {
-            conversationState.waitingForAge = true;
-        }, 1000);
+        // Add assistant response to conversation history
+        conversationState.conversationHistory.push({
+            role: 'assistant',
+            content: response.message
+        });
+        
+    } catch (error) {
+        console.error('Error processing conversation:', error);
+        addBotMessage("I'm experiencing some technical difficulties. Please try again in a moment, or feel free to schedule a call with our studio owner for immediate assistance.");
+    } finally {
+        removeLoadingIndicator(loadingId);
     }
 }
 
@@ -688,8 +710,11 @@ function addBotMessage(text, suggestedClasses = []) {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message bot';
     
+    // Convert line breaks to HTML
+    const formattedText = text.replace(/\n/g, '<br>');
+    
     let content = `<div class="content">
-        <div class="message-text">${text}</div>
+        <div class="message-text">${formattedText}</div>
     `;
     
     // Only show suggested classes in the chat if there are any
@@ -885,17 +910,17 @@ async function callGroqAPI(query) {
         // Prepare simple text-based prompt
         const systemPrompt = `You are a dance class assistant. Suggest the best matching classes from the given list based on user preferences.
 
-IMPORTANT: Only suggest classes where the child's age fits the age range exactly.
-
 Return your response as JSON:
 {
-  "text": "Brief explanation of recommendations",
+  "text": "Brief explanation of recommendations - if matchType is 'closest', explain what compromises were made",
   "classes": ["list", "of", "class", "ids"],
   "matchType": "direct" or "closest"
 }
 
 Use "direct" when classes perfectly match all criteria (age, style, day).
-Use "closest" when you had to compromise on style or day preferences but age still matches.`;
+Use "closest" when you had to compromise on style or day preferences but age still matches.
+
+IMPORTANT: If using "closest" match, your text must clearly explain what preferences couldn't be met exactly (e.g., "I couldn't find ballet classes on Mondays for your child's age, but here are some great ballet classes on other days" or "No hip hop classes available for 5-year-olds, but these classes accept similar ages and might be perfect").`;
 
         // Format user preferences in simple text
         const prefsText = `Child's Age: ${preferences.age}
@@ -917,9 +942,7 @@ Description: ${cls.description}
 ${prefsText}
 
 AVAILABLE CLASSES:
-${classesText}
-
-Find classes that match the child's age and preferences. Age ${preferences.age} must fit within the class age range.`;
+${classesText}`;
 
         // Save the prompt to a file
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -927,36 +950,71 @@ Find classes that match the child's age and preferences. Age ${preferences.age} 
         const fullPrompt = `=== SYSTEM PROMPT ===\n${systemPrompt}\n\n=== USER PROMPT ===\n${userPrompt}`;
         saveToFile(promptFilename, fullPrompt);
         
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${GROQ_API_KEY}`
-            },
-            body: JSON.stringify({
-                model: 'openai/gpt-oss-120b',
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: userPrompt }
-                ],
-                temperature: 1.0,
-                max_tokens: 8192,
-                response_format: { type: 'json_object' }
-            })
-        });
+        // Retry logic for API calls with longer delays for rate limits
+        const maxRetries = 2;
+        let retryCount = 0;
         
-        if (!response.ok) {
-            throw new Error(`API error: ${response.status}`);
+        while (retryCount <= maxRetries) {
+            try {
+                const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${config.openRouterApiKey}`,
+                        'Content-Type': 'application/json',
+                        'HTTP-Referer': window.location.origin,
+                        'X-Title': 'Dance Studio Chat'
+                    },
+                    body: JSON.stringify({
+                        model: 'openai/gpt-4.1-nano',
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: userPrompt }
+                        ],
+                        temperature: 0.7,
+                        max_tokens: 4096,
+                        response_format: { type: 'json_object' }
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const responseContent = data.choices[0].message.content;
+                
+                // Save the response to a file
+                const responseFilename = `llm-response-${timestamp}.txt`;
+                console.log(`LLM Response saved as: ${responseFilename}`);
+                console.log('LLM Response:', responseContent);
+                
+                // Try to parse JSON, fallback if it's plain text
+                try {
+                    return JSON.parse(responseContent);
+                } catch (parseError) {
+                    console.log('Class LLM returned plain text, creating JSON wrapper');
+                    return {
+                        text: responseContent,
+                        classes: [],
+                        matchType: "closest"
+                    };
+                }
+                
+            } catch (error) {
+                console.error(`Class recommendation API error (attempt ${retryCount + 1}):`, error);
+                retryCount++;
+
+                if (retryCount <= maxRetries) {
+                    // Wait before retrying (exponential backoff)
+                    const waitTime = Math.pow(2, retryCount) * 1000; // 2s, 4s
+                    console.log(`Retrying class recommendation in ${waitTime}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, waitTime));
+                }
+            }
         }
         
-        const data = await response.json();
-        const responseContent = data.choices[0].message.content;
-        
-        // Save the response to a file
-        const responseFilename = `llm-response-${timestamp}.txt`;
-        saveToFile(responseFilename, responseContent);
-        
-        return JSON.parse(responseContent);
+        // All retries failed
+        throw new Error('Failed to get class recommendations after multiple attempts');
     } catch (error) {
         console.error('API call failed:', error);
         return {
@@ -965,4 +1023,3 @@ Find classes that match the child's age and preferences. Age ${preferences.age} 
         };
     }
 }
-
