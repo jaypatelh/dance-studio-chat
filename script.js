@@ -12,8 +12,9 @@ const chatMessages = document.getElementById('chat-messages');
 // Control whether the chat auto-scrolls
 const AUTO_SCROLL = false;
 
-// Store all classes
+// Store all classes and availability data
 let allClasses = [];
+let ownerAvailability = {};
 
 // Track conversation state
 const conversationState = {
@@ -46,19 +47,15 @@ function reloadClasses() {
 // Initialize the chat when the page loads
 window.onload = function() {
     loadClassesFromGoogleSheets();
+    loadOwnerAvailability();
     loadCalendly(); // Load Calendly script
     
     // Add welcome message after a short delay
     setTimeout(() => {
         const welcomeMessage = [
-            "👋 Hi there! I'm your Dance Studio Assistant. I can help you with:",
+            "👋 Hi there! I'm your Dance Class Assistant. Let's find the perfect dance class for your child!",
             "",
-            "🩰 **Finding dance classes** - Tell me your child's age, preferred style, and days",
-            "💳 **Billing & payment questions** - Tuition, discounts, payment plans",
-            "📋 **Studio policies** - Dress code, attendance, makeup classes",
-            "🏢 **General studio info** - Facilities, contact info, programs",
-            "",
-            "What would you like to know about our studio today?"
+            "To get started, what's your child's age?"
         ].join('\n');
         
         // Initialize conversation history with welcome message
@@ -184,14 +181,16 @@ async function processUserResponse(message, event) {
             addBotMessage(response.message);
         } else {
             // Regular conversation response
-            addBotMessage(response.message);
+            addBotMessage(response.message || 'Sorry, I encountered an error. Please try again.');
         }
         
-        // Add assistant response to conversation history
-        conversationState.conversationHistory.push({
-            role: 'assistant',
-            content: response.message
-        });
+        // Add assistant response to conversation history (only if message exists)
+        if (response.message) {
+            conversationState.conversationHistory.push({
+                role: 'assistant',
+                content: response.message
+            });
+        }
         
     } catch (error) {
         console.error('Error processing conversation:', error);
@@ -204,8 +203,7 @@ async function processUserResponse(message, event) {
 // Get class recommendations from LLM based on user preferences
 async function getClassRecommendations(prefs) {
     try {
-        console.log('Getting class recommendations with prefs:', prefs);
-        
+            
         // Prepare class data with unique identifiers, filtering out empty classes
         const classData = allClasses
             .filter(cls => cls.name && cls.name.trim()) // Only include classes with valid names
@@ -221,9 +219,7 @@ async function getClassRecommendations(prefs) {
                 level: cls.level || ''
             }));
         
-        console.log('Sending class data to LLM:', classData);
-        console.log('User preferences:', prefs);
-        
+            
         // Call the LLM with the preferences and class data
         const response = await callGroqAPI(JSON.stringify({
             task: 'recommend_classes',
@@ -231,22 +227,17 @@ async function getClassRecommendations(prefs) {
             availableClasses: classData
         }));
 
-        console.log('Received response from LLM:', response);
-        console.log('Response classes array:', response?.classes);
-        console.log('Match type:', response?.matchType);
         
         // Handle the LLM response
         if (response && response.classes && Array.isArray(response.classes)) {
-            console.log('LLM returned class IDs:', response.classes);
-            
+                
             // Map class IDs back to full class objects using the same mapping as sent to LLM
             const classDataMap = {};
             classData.forEach(cls => {
                 classDataMap[cls.id] = cls;
             });
             
-            console.log('Available class IDs in map:', Object.keys(classDataMap));
-            
+                
             // Map back to original allClasses objects using direct ID lookup
             const recommendedClasses = response.classes
                 .map(classId => {
@@ -256,24 +247,19 @@ async function getClassRecommendations(prefs) {
                         return null;
                     }
                     
-                    console.log(`Direct mapping ${classId}:`, classFromLLM);
                     
-                    // Extract the index from the class ID (e.g., "class_35" -> 35)
-                    const index = parseInt(classId.replace('class_', ''));
-                    const originalClass = allClasses[index];
+                    const classIndex = parseInt(classId.replace('class_', ''));
+                    const originalClass = allClasses[classIndex];
                     
                     if (!originalClass) {
-                        console.warn(`Original class at index ${index} not found`);
+                        console.warn(`Original class at index ${classIndex} not found`);
                         return classFromLLM; // Fallback to LLM data
                     }
-                    
-                    console.log(`Successfully mapped to index ${index}:`, originalClass);
                     return originalClass;
                 })
                 .filter(Boolean); // Remove any undefined entries
                 
-            console.log('Final mapped recommended classes:', recommendedClasses);
-            
+                
             // Add match type to the classes for UI display
             const classesWithMatchType = recommendedClasses.map(cls => ({
                 ...cls,
@@ -438,7 +424,6 @@ function getSampleData() {
 
 // Display all classes in the grid
 function displayAllClasses() {
-    console.log('Displaying all classes:', allClasses);
     const grid = document.getElementById('class-grid');
     
     if (!grid) {
@@ -455,10 +440,8 @@ function displayAllClasses() {
         return;
     }
     
-    console.log(`Rendering ${allClasses.length} classes`);
     
     allClasses.forEach((cls, index) => {
-        console.log(`Rendering class ${index + 1}:`, cls);
         try {
             const card = createClassCard(cls);
             if (card) {
@@ -471,7 +454,6 @@ function displayAllClasses() {
         }
     });
     
-    console.log('Finished rendering classes');
 }
 
 // Process sheet data from Google Sheets
@@ -533,8 +515,7 @@ function extractSheetId(url) {
 // Load classes from Google Sheets using API v4
 async function loadClassesFromGoogleSheets() {
     try {
-        console.log('Fetching classes from Google Sheets API...');
-        
+            
         if (!GOOGLE_SHEET_ID) throw new Error('Google Sheet ID is not configured');
         
         // First, get the list of all sheets in the document
@@ -589,7 +570,6 @@ async function loadClassesFromGoogleSheets() {
         const allDayClasses = await Promise.all(sheetPromises);
         allClasses = allDayClasses.flat();
         
-        console.log(`Loaded ${allClasses.length} classes from ${daySheets.length} sheets`);
         displayAllClasses();
         
     } catch (error) {
@@ -597,6 +577,195 @@ async function loadClassesFromGoogleSheets() {
         allClasses = getSampleData();
         displayAllClasses();
         addBotMessage("Error loading class data. Showing sample data instead.");
+    }
+}
+
+// Load owner availability from Google Sheets
+async function loadOwnerAvailability() {
+    try {
+            
+        const response = await fetch(
+            `https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEET_ID}/values/Call%20Availabilities!A:B?key=${GOOGLE_API_KEY}`
+        );
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch availability data');
+        }
+        
+        const { values } = await response.json();
+        if (!values || values.length < 2) {
+            console.warn('No availability data found');
+            return;
+        }
+        
+        // Parse availability data (skip header row)
+        ownerAvailability = {};
+        values.slice(1).forEach(row => {
+            const [day, times] = row;
+            if (day && times) {
+                ownerAvailability[day.toLowerCase()] = times.toLowerCase() === 'none' ? [] : times.split(',').map(t => t.trim());
+            }
+        });
+        
+            
+        // Update calendar configuration with dynamic availability
+        updateCalendarAvailability();
+        
+    } catch (error) {
+        console.error('Error loading owner availability:', error);
+        // Keep default availability if loading fails
+    }
+}
+
+// Update calendar configuration based on owner availability
+function updateCalendarAvailability() {
+    const dayMap = {
+        'sunday': 0, 'monday': 1, 'tuesday': 2, 'wednesday': 3, 
+        'thursday': 4, 'friday': 5, 'saturday': 6
+    };
+    
+    // Clear existing slots and ensure daysToShow is set
+    window.calendarConfig = window.calendarConfig || {};
+    window.calendarConfig.availableSlots = [];
+    window.calendarConfig.daysToShow = 7;
+    
+    // Generate slots based on owner availability
+    Object.keys(ownerAvailability).forEach(dayName => {
+        const dayNumber = dayMap[dayName];
+        const times = ownerAvailability[dayName];
+        
+        if (dayNumber !== undefined && times.length > 0) {
+            times.forEach(timeStr => {
+                // Parse time string (e.g., "2:00 PM" or "14:00" or "9:00 AM - 12:00 PM")
+                const slots = parseTimeSlot(timeStr, dayNumber);
+                if (slots) {
+                    // Handle both single slots and arrays of slots (from ranges)
+                    if (Array.isArray(slots)) {
+                        window.calendarConfig.availableSlots.push(...slots);
+                    } else {
+                        window.calendarConfig.availableSlots.push(slots);
+                    }
+                }
+            });
+        }
+    });
+    
+}
+
+// Parse time slot from string format (supports ranges and individual times)
+function parseTimeSlot(timeStr, dayNumber) {
+    try {
+        // Check if it's a time range (e.g., "9:00 AM - 12:00 PM")
+        if (timeStr.includes(' - ')) {
+            return parseTimeRange(timeStr, dayNumber);
+        }
+        
+        // Handle individual time slots
+        let time24, label;
+        
+        if (timeStr.includes('am') || timeStr.includes('pm')) {
+            // 12-hour format (e.g., "2:00 PM")
+            const [time, period] = timeStr.split(/\s*(am|pm)\s*/i);
+            let [hours, minutes = '00'] = time.split(':');
+            hours = parseInt(hours);
+            
+            if (period.toLowerCase() === 'pm' && hours !== 12) {
+                hours += 12;
+            } else if (period.toLowerCase() === 'am' && hours === 12) {
+                hours = 0;
+            }
+            
+            time24 = `${hours.toString().padStart(2, '0')}:${minutes.padStart(2, '0')}`;
+            label = timeStr;
+        } else {
+            // 24-hour format (e.g., "14:00")
+            time24 = timeStr;
+            const [hours, minutes] = timeStr.split(':');
+            const hour12 = parseInt(hours) > 12 ? parseInt(hours) - 12 : parseInt(hours);
+            const period = parseInt(hours) >= 12 ? 'PM' : 'AM';
+            label = `${hour12}:${minutes} ${period}`;
+        }
+        
+        return {
+            day: [dayNumber],
+            time: time24,
+            label: label
+        };
+    } catch (error) {
+        console.error('Error parsing time slot:', timeStr, error);
+        return null;
+    }
+}
+
+// Parse time range and generate 10-minute slots
+function parseTimeRange(rangeStr, dayNumber) {
+    try {
+        const [startStr, endStr] = rangeStr.split(' - ').map(s => s.trim());
+        
+        const startTime = parseTimeString(startStr);
+        const endTime = parseTimeString(endStr);
+        
+        if (!startTime || !endTime) {
+            console.error('Could not parse time range:', rangeStr);
+            return null;
+        }
+        
+        // Generate 10-minute slots between start and end time
+        const slots = [];
+        let currentTime = new Date();
+        currentTime.setHours(startTime.hours, startTime.minutes, 0, 0);
+        
+        const endDateTime = new Date();
+        endDateTime.setHours(endTime.hours, endTime.minutes, 0, 0);
+        
+        while (currentTime < endDateTime) {
+            const time24 = `${currentTime.getHours().toString().padStart(2, '0')}:${currentTime.getMinutes().toString().padStart(2, '0')}`;
+            const hour12 = currentTime.getHours() > 12 ? currentTime.getHours() - 12 : (currentTime.getHours() === 0 ? 12 : currentTime.getHours());
+            const period = currentTime.getHours() >= 12 ? 'PM' : 'AM';
+            const label = `${hour12}:${currentTime.getMinutes().toString().padStart(2, '0')} ${period}`;
+            
+            slots.push({
+                day: [dayNumber],
+                time: time24,
+                label: label
+            });
+            
+            // Add 10 minutes
+            currentTime.setMinutes(currentTime.getMinutes() + 10);
+        }
+        
+        return slots;
+    } catch (error) {
+        console.error('Error parsing time range:', rangeStr, error);
+        return null;
+    }
+}
+
+// Helper function to parse individual time strings
+function parseTimeString(timeStr) {
+    try {
+        if (timeStr.includes('am') || timeStr.includes('pm')) {
+            // 12-hour format
+            const [time, period] = timeStr.split(/\s*(am|pm)\s*/i);
+            let [hours, minutes = '00'] = time.split(':');
+            hours = parseInt(hours);
+            minutes = parseInt(minutes);
+            
+            if (period.toLowerCase() === 'pm' && hours !== 12) {
+                hours += 12;
+            } else if (period.toLowerCase() === 'am' && hours === 12) {
+                hours = 0;
+            }
+            
+            return { hours, minutes };
+        } else {
+            // 24-hour format
+            const [hours, minutes = '00'] = timeStr.split(':');
+            return { hours: parseInt(hours), minutes: parseInt(minutes) };
+        }
+    } catch (error) {
+        console.error('Error parsing time string:', timeStr, error);
+        return null;
     }
 }
 
@@ -644,32 +813,72 @@ function loadCalendly() {
 function showBookingForm() {
     const form = document.createElement('div');
     form.className = 'booking-form';
+    form.innerHTML = `
+        <div class="booking-header">
+            <h3>Schedule a Call with Our Studio Owner</h3>
+            <p>Please provide your contact information to schedule a 10-minute consultation call.</p>
+        </div>
+        <div id="contact-form">
+            <div class="form-group">
+                <label for="booking-name">Name *</label>
+                <input type="text" id="booking-name" required placeholder="Your full name">
+            </div>
+            <div class="form-group">
+                <label for="booking-email">Email *</label>
+                <input type="email" id="booking-email" required placeholder="your.email@example.com">
+            </div>
+            <div class="form-group">
+                <label for="booking-phone">Phone Number *</label>
+                <input type="tel" id="booking-phone" required placeholder="(555) 123-4567">
+            </div>
+            <button id="continue-to-calendar" class="btn-primary">Continue to Calendar</button>
+        </div>
+        <div id="booking-calendar" style="display: none;"></div>
+    `;
+    
     chatMessages.appendChild(form);
     
-    // Initialize the booking calendar
-    bookingCalendar = new BookingCalendar(form, (date, time) => {
-        console.log('Booking confirmed for:', date, time);
-        conversationState.waitingForBookingConfirmation = false;
+    // Add event listener for continue button
+    const continueBtn = form.querySelector('#continue-to-calendar');
+    continueBtn.addEventListener('click', () => {
+        const name = form.querySelector('#booking-name').value.trim();
+        const email = form.querySelector('#booking-email').value.trim();
+        const phone = form.querySelector('#booking-phone').value.trim();
         
-        // Add confirmation message to chat
-        setTimeout(() => {
-            addBotMessage([
-                "✅ **Booking Confirmed!**",
-                "",
-                `Your call has been scheduled for ${date} at ${time}.`,
-                "",
-                "Our studio owner will call you at the scheduled time to discuss dance classes for your child.",
-                "",
-                "If you need to reschedule or have any questions, please contact us directly."
-            ].join('\n'));
-        }, 1000);
+        if (!name || !email || !phone) {
+            alert('Please fill in all required fields.');
+            return;
+        }
+        
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            alert('Please enter a valid email address.');
+            return;
+        }
+        
+        // Store booking info
+        bookingInfo.name = name;
+        bookingInfo.email = email;
+        bookingInfo.phone = phone;
+        
+        // Hide contact form and show calendar
+        form.querySelector('#contact-form').style.display = 'none';
+        form.querySelector('#booking-calendar').style.display = 'block';
+        form.querySelector('.booking-header p').textContent = 'Select your preferred date and time for a 10-minute consultation call.';
+        
+        // Scroll to show the calendar
+        scrollToBottom();
+        
+        // Initialize calendar
+        const calendarContainer = form.querySelector('#booking-calendar');
+        if (window.BookingCalendar && calendarContainer) {
+            bookingCalendar = new window.BookingCalendar(calendarContainer);
+            bookingCalendar.render();
+        } else {
+            console.error('BookingCalendar not available or container not found');
+        }
     });
-    
-    // Show the booking form
-    bookingCalendar.showBookingForm();
-    
-    // Scroll to show the booking form
-    scrollToBottom();
 }
 
 // Initialize booking calendar
@@ -682,6 +891,8 @@ document.addEventListener('click', (e) => {
         e.preventDefault();
         conversationState.waitingForBookingConfirmation = true;
         showBookingForm();
+        // Scroll to show the booking form
+        setTimeout(() => scrollToBottom(), 100);
     }
     
     // Handle search again button
@@ -705,10 +916,17 @@ document.addEventListener('click', (e) => {
     }
 });
 
+
 // Add a message from the bot to the chat
 function addBotMessage(text, suggestedClasses = []) {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message bot';
+    
+    // Handle undefined or null text
+    if (!text || typeof text !== 'string') {
+        console.error('addBotMessage received invalid text:', text);
+        text = 'Sorry, I encountered an error. Please try again.';
+    }
     
     // Convert line breaks to HTML
     const formattedText = text.replace(/\n/g, '<br>');
@@ -861,7 +1079,6 @@ function scrollToBottom() {
 
 // Create a class card element
 function createClassCard(cls) {
-    console.log('Creating card for class:', cls);
     const card = document.createElement('div');
     card.className = 'class-card';
     
@@ -944,11 +1161,7 @@ ${prefsText}
 AVAILABLE CLASSES:
 ${classesText}`;
 
-        // Save the prompt to a file
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const promptFilename = `llm-prompt-${timestamp}.txt`;
-        const fullPrompt = `=== SYSTEM PROMPT ===\n${systemPrompt}\n\n=== USER PROMPT ===\n${userPrompt}`;
-        saveToFile(promptFilename, fullPrompt);
         
         // Retry logic for API calls with longer delays for rate limits
         const maxRetries = 2;
@@ -983,16 +1196,11 @@ ${classesText}`;
                 const data = await response.json();
                 const responseContent = data.choices[0].message.content;
                 
-                // Save the response to a file
-                const responseFilename = `llm-response-${timestamp}.txt`;
-                console.log(`LLM Response saved as: ${responseFilename}`);
-                console.log('LLM Response:', responseContent);
                 
                 // Try to parse JSON, fallback if it's plain text
                 try {
                     return JSON.parse(responseContent);
                 } catch (parseError) {
-                    console.log('Class LLM returned plain text, creating JSON wrapper');
                     return {
                         text: responseContent,
                         classes: [],
@@ -1005,9 +1213,8 @@ ${classesText}`;
                 retryCount++;
 
                 if (retryCount <= maxRetries) {
-                    // Wait before retrying (exponential backoff)
-                    const waitTime = Math.pow(2, retryCount) * 1000; // 2s, 4s
-                    console.log(`Retrying class recommendation in ${waitTime}ms...`);
+                // Wait before retrying (exponential backoff)
+                const waitTime = Math.pow(2, retryCount) * 1000; // 2s, 4s
                     await new Promise(resolve => setTimeout(resolve, waitTime));
                 }
             }

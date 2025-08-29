@@ -15,8 +15,8 @@ const calendarConfig = {
         { day: [6,0], time: '14:00', label: '2:00 PM' },
     ],
     
-    // Days to show in the calendar (default: next 14 days)
-    daysToShow: 14,
+    // Days to show in the calendar (next 7 days only)
+    daysToShow: 7,
     
     // Timezone offset in hours (e.g., -7 for PST)
     timezoneOffset: -7
@@ -32,26 +32,24 @@ class BookingCalendar {
     }
     
     render() {
+        // Get current date in local timezone (no conversion needed)
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+        
+        const dateGrid = this.generateDateGrid(today);
         
         let calendarHTML = `
             <div class="calendar-header">
                 <h3>Select a Date & Time</h3>
-                <p>Choose from available time slots below</p>
-            </div>
-            <div class="calendar-navigation">
-                <button class="btn-secondary prev-week">← Previous</button>
-                <span class="month-year">${this.getMonthYearString(today)}</span>
-                <button class="btn-primary next-week">Next →</button>
+                <p>Choose from available time slots in the next 7 days</p>
             </div>
             <div class="calendar-dates">
-                ${this.generateDateGrid(today)}
+                ${dateGrid}
             </div>
             <div class="time-slots">
                 <h4>Available Times</h4>
                 <div class="time-slots-grid" id="time-slots">
-                    <!-- Time slots will be populated here -->
+                    <p>Please select a date first to see available times.</p>
                 </div>
             </div>
             <div class="booking-summary" id="booking-summary" style="display: none;">
@@ -65,39 +63,48 @@ class BookingCalendar {
         
         this.container.innerHTML = calendarHTML;
         this.setupEventListeners();
-        this.updateTimeSlots(today);
     }
     
     generateDateGrid(startDate) {
-        let grid = '<div class="weekdays">';
-        const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        let grid = '<div class="dates-simple">';
         
-        // Add weekday headers
-        weekdays.forEach(day => {
-            grid += `<div class="weekday">${day}</div>`;
-        });
-        grid += '</div><div class="dates">';
+        // Generate dates for the next 7 days only
+        const config = window.calendarConfig || {
+            availableSlots: [],
+            daysToShow: 7,
+            timezoneOffset: -7
+        };
         
-        // Add dates
-        const today = new Date(startDate);
-        for (let i = 0; i < 7; i++) {
-            const date = new Date(today);
-            date.setDate(today.getDate() + i);
+        for (let i = 0; i < config.daysToShow; i++) {
+            const date = new Date(startDate);
+            date.setDate(startDate.getDate() + i);
             
             const dayOfWeek = date.getDay();
-            const dayOfMonth = date.getDate();
-            const isToday = i === 0;
-            const isAvailable = this.isDateAvailable(dayOfWeek);
+            // Use local date string to avoid timezone issues
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const dateStr = `${year}-${month}-${day}`;
+            const dayNum = date.getDate();
+            const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+            const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
             
-            grid += `
-                <div class="date-cell ${isToday ? 'today' : ''} ${isAvailable ? 'available' : 'unavailable'}" 
-                     data-date="${this.formatDate(date)}" 
-                     data-day="${dayOfWeek}"
-                     ${!isAvailable ? 'disabled' : ''}>
-                    <span class="day">${dayOfMonth}</span>
-                    ${isToday ? '<span class="today-label">Today</span>' : ''}
+            // Check if this day has available slots
+            const availableSlots = this.getAvailableSlotsForDay(dayOfWeek);
+            const hasSlots = availableSlots.length > 0;
+            const isToday = i === 0; // First day is always today
+            
+            const cardHTML = `
+                <div class="date-card ${hasSlots ? 'available' : 'unavailable'} ${isToday ? 'today' : ''}" 
+                     data-date="${dateStr}" data-day="${dayOfWeek}">
+                    <div class="day-name">${dayName}</div>
+                    <div class="day-number">${dayNum}</div>
+                    <div class="month">${monthName}</div>
+                    ${hasSlots ? '<div class="available-indicator">Available</div>' : '<div class="unavailable-indicator">No slots</div>'}
                 </div>
             `;
+            
+            grid += cardHTML;
         }
         
         grid += '</div>';
@@ -106,6 +113,10 @@ class BookingCalendar {
     
     updateTimeSlots(date) {
         const dayOfWeek = date.getDay();
+        this.updateTimeSlotsByDay(dayOfWeek);
+    }
+    
+    updateTimeSlotsByDay(dayOfWeek) {
         const availableSlots = this.getAvailableSlotsForDay(dayOfWeek);
         const timeSlotsContainer = this.container.querySelector('#time-slots');
         
@@ -115,18 +126,12 @@ class BookingCalendar {
         }
         
         timeSlotsContainer.innerHTML = availableSlots.map(slot => `
-            <button class="time-slot" data-time="${slot.time}">
+            <button class="time-slot" data-time="${slot.time}" data-label="${slot.label}">
                 ${slot.label}
             </button>
         `).join('');
         
-        // Add event listeners to time slots
-        timeSlotsContainer.querySelectorAll('.time-slot').forEach(slot => {
-            slot.addEventListener('click', (e) => {
-                this.selectedTime = e.target.dataset.time;
-                this.showBookingSummary(date);
-            });
-        });
+        // Remove duplicate event listeners - handled by main setupEventListeners
     }
     
     showBookingForm() {
@@ -214,21 +219,26 @@ class BookingCalendar {
         `;
         
         try {
-            // Save to Google Sheets
-            await this.saveBookingToSheets({
-                ...this.bookingInfo,
+            // Save to Google Sheets - create basic booking data if bookingInfo is null
+            const bookingData = {
                 date: dateStr,
                 time: timeStr,
-                timestamp: new Date().toISOString()
-            });
+                timestamp: new Date().toISOString(),
+                ...(this.bookingInfo || {})
+            };
+            
+            await this.saveBookingToSheets(bookingData);
+            
+            // Format the time properly - timeStr is an object with time and label properties
+            const timeDisplay = typeof timeStr === 'object' ? timeStr.label : timeStr;
             
             this.container.innerHTML = `
                 <div class="booking-confirmation">
                     <div class="checkmark">✓</div>
                     <h3>Booking Confirmed!</h3>
                     <p>We've scheduled your call for:</p>
-                    <p><strong>${dateStr} at ${timeStr}</strong></p>
-                    <p>We'll call you at ${this.bookingInfo.phone} at the scheduled time.</p>
+                    <p><strong>${dateStr} at ${timeDisplay}</strong></p>
+                    <p>We'll call you at the scheduled time.</p>
                     <button class="btn-primary" id="close-booking">Done</button>
                 </div>
             `;
@@ -238,6 +248,25 @@ class BookingCalendar {
                 conversationState.waitingForBookingInfo = false;
                 conversationState.waitingForBookingConfirmation = false;
             });
+            
+            // Add persistent reminder message to chat
+            setTimeout(() => {
+                // Parse date string manually to avoid timezone issues
+                const [year, month, day] = dateStr.split('-').map(Number);
+                const dateObj = new Date(year, month - 1, day); // month is 0-indexed
+                const formattedDate = this.formatDate(dateObj, 'full');
+                const timeDisplay = typeof timeStr === 'object' ? timeStr.label : timeStr;
+                
+                addBotMessage([
+                    "✅ **Booking Confirmed!**",
+                    "",
+                    `Your call has been scheduled for **${formattedDate} at ${timeDisplay}**.`,
+                    "",
+                    "Our studio owner will call you at the scheduled time to discuss dance classes for your child.",
+                    "",
+                    "If you need to reschedule or have any questions, please contact us at (408) 204-6849."
+                ].join('\n'));
+            }, 1000);
             
             // Call the callback with booking details
             if (this.onDateSelect) {
@@ -289,7 +318,12 @@ class BookingCalendar {
     }
     
     getAvailableSlotsForDay(dayOfWeek) {
-        return calendarConfig.availableSlots.filter(slot => 
+        const config = window.calendarConfig || {
+            availableSlots: [],
+            daysToShow: 7,
+            timezoneOffset: -7
+        };
+        return config.availableSlots.filter(slot => 
             slot.day.includes(dayOfWeek)
         );
     }
@@ -309,29 +343,110 @@ class BookingCalendar {
     setupEventListeners() {
         // Date selection
         this.container.addEventListener('click', (e) => {
-            const dateCell = e.target.closest('.date-cell.available');
-            if (dateCell && !dateCell.disabled) {
-                const dateStr = dateCell.dataset.date;
-                const date = new Date(dateStr);
-                this.selectedDate = date;
-                this.updateTimeSlots(date);
+            if (e.target.closest('.date-card')) {
+                const dateElement = e.target.closest('.date-card');
+                const dateStr = dateElement.dataset.date;
+                const dayOfWeek = parseInt(dateElement.dataset.day);
                 
-                // Update selected state
-                this.container.querySelectorAll('.date-cell').forEach(cell => {
-                    cell.classList.remove('selected');
-                });
-                dateCell.classList.add('selected');
+                if (dateElement.classList.contains('available')) {
+                    // Remove previous selection
+                    this.container.querySelectorAll('.date-card.selected').forEach(el => {
+                        el.classList.remove('selected');
+                    });
+                    
+                    // Add selection to clicked date
+                    dateElement.classList.add('selected');
+                    this.selectedDate = dateStr;
+                    
+                    // Update time slots for selected date - use dayOfWeek directly
+                    this.updateTimeSlotsByDay(dayOfWeek);
+                    
+                    if (this.onDateSelect) {
+                        this.onDateSelect(dateStr);
+                    }
+                }
+            }
+            
+            // Time slot selection
+            if (e.target.classList.contains('time-slot')) {
+                const timeSlot = e.target;
+                const timeStr = timeSlot.dataset.time;
+                const timeLabel = timeSlot.dataset.label;
+                
+                if (!timeSlot.classList.contains('unavailable')) {
+                    // Remove previous selection
+                    this.container.querySelectorAll('.time-slot.selected').forEach(el => {
+                        el.classList.remove('selected');
+                    });
+                    
+                    // Add selection to clicked time
+                    timeSlot.classList.add('selected');
+                    this.selectedTime = { time: timeStr, label: timeLabel };
+                    
+                    // Show booking summary
+                    this.showBookingSummary();
+                    
+                    // Scroll to show the booking summary
+                    setTimeout(() => {
+                        const chatContainer = document.getElementById('chat-messages');
+                        if (chatContainer) {
+                            chatContainer.scrollTop = chatContainer.scrollHeight;
+                        }
+                    }, 100);
+                }
+            }
+            
+            // Confirm booking button
+            if (e.target.id === 'confirm-booking') {
+                if (this.selectedDate && this.selectedTime) {
+                    this.confirmBooking(this.selectedDate, this.selectedTime);
+                    
+                    // Scroll to show the confirmation
+                    setTimeout(() => {
+                        const chatContainer = document.getElementById('chat-messages');
+                        if (chatContainer) {
+                            chatContainer.scrollTop = chatContainer.scrollHeight;
+                        }
+                    }, 500);
+                }
+            }
+            
+            // Change selection button
+            if (e.target.id === 'change-selection') {
+                this.hideBookingSummary();
             }
         });
+    }
+    
+    showBookingSummary() {
+        if (this.selectedDate && this.selectedTime) {
+            const summary = this.container.querySelector('#booking-summary');
+            const selectedDateSpan = this.container.querySelector('#selected-date');
+            const selectedTimeSpan = this.container.querySelector('#selected-time');
+            
+            if (summary && selectedDateSpan && selectedTimeSpan) {
+                // Parse date string manually to avoid timezone issues
+                const [year, month, day] = this.selectedDate.split('-').map(Number);
+                const date = new Date(year, month - 1, day); // month is 0-indexed
+                selectedDateSpan.textContent = this.formatDate(date, 'full');
+                selectedTimeSpan.textContent = this.selectedTime.label;
+                
+                summary.style.display = 'block';
+            }
+        }
+    }
+    
+    hideBookingSummary() {
+        const summary = this.container.querySelector('#booking-summary');
+        summary.style.display = 'none';
         
-        // Navigation
-        this.container.querySelector('.prev-week')?.addEventListener('click', () => {
-            // Implementation for previous week
+        // Clear selections
+        this.container.querySelectorAll('.selected').forEach(el => {
+            el.classList.remove('selected');
         });
         
-        this.container.querySelector('.next-week')?.addEventListener('click', () => {
-            // Implementation for next week
-        });
+        this.selectedDate = null;
+        this.selectedTime = null;
     }
 }
 

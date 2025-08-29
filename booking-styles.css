@@ -86,6 +86,94 @@
     font-size: 1.1rem;
 }
 
+.calendar-dates {
+    margin-bottom: 20px;
+}
+
+.dates-simple {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding: 10px 0;
+}
+
+.date-card {
+    min-width: 120px;
+    padding: 16px 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: white;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.date-card:hover {
+    border-color: #007bff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,123,255,0.15);
+}
+
+.date-card.available {
+    border-color: #28a745;
+    background: #f8fff9;
+}
+
+.date-card.available:hover {
+    border-color: #20c997;
+    background: #e8f5e8;
+}
+
+.date-card.unavailable {
+    border-color: #dc3545;
+    background: #fff5f5;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.date-card.selected {
+    border-color: #007bff;
+    background: #007bff;
+    color: white;
+}
+
+.date-card.today {
+    font-weight: bold;
+    box-shadow: 0 0 0 3px #ffc107;
+}
+
+.day-name {
+    font-size: 0.9em;
+    color: #666;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.day-number {
+    font-size: 1.4em;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.month {
+    font-size: 0.8em;
+    color: #666;
+    margin-bottom: 8px;
+}
+
+.available-indicator {
+    font-size: 0.75em;
+    color: #28a745;
+    font-weight: 600;
+}
+
+.unavailable-indicator {
+    font-size: 0.75em;
+    color: #dc3545;
+    font-weight: 600;
+}
+
 .weekdays {
     display: grid;
     grid-template-columns: repeat(7, 1fr);

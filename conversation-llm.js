@@ -72,17 +72,15 @@ Dress Code by Class:
 async function getConversationResponse(userMessage, conversationState) {
     const studioContext = STUDIO_CONTEXT;
     
-    console.log('Studio context available:', studioContext ? 'YES' : 'NO');
-    console.log('Studio context length:', studioContext.length);
-    console.log('Studio context preview:', studioContext.substring(0, 200));
     
-    const systemPrompt = `You are a helpful dance class assistant for a dance studio. Your goals are to:
+    const systemPrompt = `You are a helpful dance class assistant for a dance studio. Your primary goal is to find the perfect dance class by:
 
-1. Answer questions about the dance studio (billing, policies, dress code, etc.) using the provided studio context
-2. Gather key information from users: child's age, dance style preference, and day preference
-3. Once you have the child's AGE (required), trigger class recommendations
-4. Help users refine their class choices if needed
-5. Guide users toward booking a call with the studio owner for complex questions
+1. FIRST: Always ask for the child's age if you don't have it - this is the most important step
+2. SECOND: Once you have age, ask about dance style preferences (ballet, hip hop, jazz, tap, etc.)
+3. THIRD: Ask about preferred days of the week
+4. FOURTH: Trigger class recommendations when you have age (required) and preferences
+5. Answer questions about the dance studio (billing, policies, dress code, etc.) using the provided studio context
+6. Help users refine their class choices if needed
 
 STUDIO CONTEXT:
 ${studioContext}
@@ -93,20 +91,23 @@ CRITICAL RULES:
 - For class recommendations: DO NOT invent or suggest specific classes - you don't know what classes exist
 - DO NOT mention specific class names, times, or details unless they were already shown to the user
 - When you have age, use "get_classes" action to let the system find real classes
+- ALWAYS prioritize getting the child's age first - this is essential for finding appropriate classes
 - AGE IS REQUIRED before you can search for classes - without age, you cannot recommend classes
+- If user asks about anything else before providing age, briefly answer but then redirect to asking for age
 - If user provides style/day preferences but NO AGE, ask for the age specifically
+- DO NOT use "schedule_call" action - call scheduling only happens after class selection
 - Be conversational and natural, not rigid
 - Extract information organically from user responses
 - Don't repeat questions if you already have the information
 - If user provides multiple pieces of info at once, acknowledge all of it
 - Always be helpful and friendly
-- If you don't know something not covered in the studio context, suggest they schedule a call
+- If you don't know something not covered in the studio context, mention they can get more info after exploring classes
 
 RESPONSE FORMAT:
 Return JSON with:
 {
   "message": "Your response to the user (use studio context for non-class questions)",
-  "action": "get_classes|refine_classes|schedule_call|continue",
+  "action": "get_classes|refine_classes|continue",
   "preferences": {
     "age": number or null,
     "style": "string or null", 
@@ -117,14 +118,12 @@ Return JSON with:
 ACTIONS:
 - "get_classes": ONLY when you have the child's age (required) - triggers the class search system
 - "refine_classes": When user wants to modify existing class suggestions
-- "schedule_call": When suggesting they book a call with the owner
 - "continue": For regular conversation flow when answering general questions or don't have age yet
 
 Current user preferences: ${JSON.stringify(conversationState.userPreferences)}
 Current classes shown: ${conversationState.currentClasses.length} classes
 `;
 
-    console.log('Full system prompt being sent to LLM:', systemPrompt.substring(0, 1000));
 
     const conversationHistory = conversationState.conversationHistory.slice(-10); // Keep last 10 messages
     
@@ -140,7 +139,6 @@ Current classes shown: ${conversationState.currentClasses.length} classes
     
     while (retryCount <= maxRetries) {
         try {
-            console.log('OpenRouter API Key:', config.openRouterApiKey ? 'Present' : 'Missing');
             const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                 method: 'POST',
                 headers: {
@@ -165,13 +163,11 @@ Current classes shown: ${conversationState.currentClasses.length} classes
             const data = await response.json();
             const responseContent = data.choices[0].message.content;
             
-            console.log('Conversation LLM response:', responseContent);
             
             // Try to parse JSON, fallback if it's plain text
             try {
                 return JSON.parse(responseContent);
             } catch (parseError) {
-                console.log('LLM returned plain text, creating JSON wrapper');
                 return {
                     message: responseContent,
                     action: "continue",
@@ -180,13 +176,11 @@ Current classes shown: ${conversationState.currentClasses.length} classes
             }
             
         } catch (error) {
-            console.error(`Conversation LLM error (attempt ${retryCount + 1}):`, error);
             retryCount++;
             
             if (retryCount <= maxRetries) {
                 // Wait before retrying (exponential backoff)
                 const waitTime = Math.pow(2, retryCount) * 1000; // 2s, 4s
-                console.log(`Retrying in ${waitTime}ms...`);
                 await new Promise(resolve => setTimeout(resolve, waitTime));
             }
         }
