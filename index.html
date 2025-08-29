@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dance Class Finder</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="booking-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-dancing"></i> Dance Class Assistant</h1>
+            <p>Find the perfect dance class for you or your child</p>
+        </header>
+
+        <div class="chat-container">
+            <div id="chat-messages" class="chat-messages">
+                <!-- Messages will be inserted here by JavaScript -->
+            </div>
+            
+            <div class="chat-input-container">
+                <input type="text" id="user-input" placeholder="Ask me about dance classes..." onkeypress="handleKeyPress(event)">
+                <button id="send-btn" onclick="handleSendMessage()">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Chat interface -->
+    </div>
+
+    <!-- Class Grid Section -->
+    <div class="class-grid-container">
+        <h2>Available Dance Classes</h2>
+        <div class="class-grid" id="class-grid">
+            <!-- Class cards will be inserted here by JavaScript -->
+        </div>
+    </div>
+
+    <footer>
+        <p>Powered by Your Dance Studio</p>
+    </footer>
+
+    <script src="config.js"></script>
+    <script src="script.js"></script>
+    <script src="calendar.js"></script>
+</body>
+</html>
