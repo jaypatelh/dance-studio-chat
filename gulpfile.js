@@ -3,18 +3,31 @@ const replace = require('gulp-replace');
 const rename = require('gulp-rename');
 require('dotenv').config();
 
-// Build task for Netlify
+// Build task for production deployment
 gulp.task('build', () => {
   return gulp.src('config.js')
-    .pipe(replace("process.env.GROQ_API_KEY || ''", `'${process.env.GROQ_API_KEY || ''}'`))
-    .pipe(replace("process.env.GOOGLE_API_KEY || ''", `'${process.env.GOOGLE_API_KEY || ''}'`))
+    .pipe(replace('{{GROQ_API_KEY}}', process.env.GROQ_API_KEY || ''))
+    .pipe(replace('{{GOOGLE_API_KEY}}', process.env.GOOGLE_API_KEY || ''))
     .pipe(gulp.dest('.'));
 });
 
-// Development server
-gulp.task('serve', () => {
-  const server = require('http-server').createServer();
-  server.listen(3000, () => {
-    console.log('Server running on http://localhost:3000');
-  });
+// Development build task
+gulp.task('build:dev', () => {
+  return gulp.src('config.js')
+    .pipe(replace('{{GROQ_API_KEY}}', process.env.GROQ_API_KEY || ''))
+    .pipe(replace('{{GOOGLE_API_KEY}}', process.env.GOOGLE_API_KEY || ''))
+    .pipe(rename('config.dev.js'))
+    .pipe(gulp.dest('.'));
 });
+
+// Development server with build
+gulp.task('serve', gulp.series('build:dev', () => {
+  const httpServer = require('http-server');
+  const server = httpServer.createServer({
+    root: '.',
+    cache: -1
+  });
+  server.listen(8080, () => {
+    console.log('Server running on http://localhost:8080');
+  });
+}));

@@ -1,7 +1,7 @@
-// Configuration - will be replaced at build time by Netlify
+// Configuration - placeholders will be replaced during build process
 const config = {
-    groqApiKey: process.env.GROQ_API_KEY || '',
-    googleApiKey: process.env.GOOGLE_API_KEY || ''
+    groqApiKey: '{{GROQ_API_KEY}}',
+    googleApiKey: '{{GOOGLE_API_KEY}}'
 };
 
 // For browser usage
