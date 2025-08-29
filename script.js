@@ -1,7 +1,8 @@
 // Configuration
 const GROQ_API_KEY = window.appConfig?.groqApiKey || '';
 const GOOGLE_API_KEY = window.appConfig?.googleApiKey || '';
-const GOOGLE_SHEET_LINK = 'https://docs.google.com/spreadsheets/d/1GFYV6qiAy8fUk8nDbbnHiiOL_jzADSWgZZuzVJ55JC0/edit?usp=sharing';
+// Google Sheet ID from the URL: https://docs.google.com/spreadsheets/d/1GFYV6qiAy8fUk8nDbbnHiiOL_jzADSWgZZuzVJ55JC0/edit
+const GOOGLE_SHEET_ID = '1GFYV6qiAy8fUk8nDbbnHiiOL_jzADSWgZZuzVJ55JC0';
 
 // DOM Elements
 const userInput = document.getElementById('user-input');
@@ -455,73 +456,74 @@ function processSheetData(rows) {
     return classes;
 }
 
-// Load classes from Google Sheets
+// Extract sheet ID from URL
+function extractSheetId(url) {
+    const match = url.match(/[\/\-][\w-]{30,}(?=\?|$)/);
+    return match ? match[0].substring(1) : null;
+}
+
+// Load classes from Google Sheets using API v4
 async function loadClassesFromGoogleSheets() {
     try {
-        console.log('Starting to load classes from Google Sheets...');
-        const sheetId = extractSheetId(GOOGLE_SHEET_LINK);
-        if (!sheetId) {
-            throw new Error('Invalid Google Sheet URL');
+        console.log('Fetching classes from Google Sheets API...');
+        
+        if (!GOOGLE_SHEET_ID) throw new Error('Google Sheet ID is not configured');
+        
+        // First, get the list of all sheets in the document
+        const sheetsResponse = await fetch(
+            `https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEET_ID}?key=${GOOGLE_API_KEY}&fields=sheets(properties(sheetId,title))`
+        );
+        
+        if (!sheetsResponse.ok) {
+            throw new Error('Failed to fetch sheet metadata');
         }
-
-        console.log('Using sheet ID:', sheetId);
         
-        // Always fetch from individual day sheets to get all classes
-        console.log('Fetching from all day sheets...');
-        const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        allClasses = [];
+        const { sheets } = await sheetsResponse.json();
+        const daySheets = sheets
+            .map(sheet => sheet.properties)
+            .filter(sheet => ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+                .includes(sheet.title));
         
-        // Fetch classes for each day in parallel
-        const dayPromises = days.map(async (day) => {
-            try {
-                console.log(`Fetching ${day}...`);
-                let dayClasses = await fetchAndParseSheet(sheetId, day, GOOGLE_API_KEY);
-                
-                // Set the day for each class
-                dayClasses = dayClasses.map(cls => ({
-                    ...cls,
-                    day: day
-                }));
-                
-                console.log(`Found ${dayClasses.length} classes for ${day}`);
-                return dayClasses;
-            } catch (error) {
-                console.warn(`Error fetching ${day}:`, error);
+        // Fetch data from each sheet in parallel
+        const sheetPromises = daySheets.map(async (sheet) => {
+            const response = await fetch(
+                `https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEET_ID}/values/${encodeURIComponent(sheet.title)}!A:F?key=${GOOGLE_API_KEY}`
+            );
+            
+            if (!response.ok) {
+                console.warn(`Failed to fetch ${sheet.title} data`);
                 return [];
             }
+            
+            const { values } = await response.json();
+            if (!values || values.length < 2) return [];
+            
+            // Skip the header row and process each class row
+            return values.slice(1).map(row => {
+                // Ensure we have at least 6 columns (A-F) as per the sheet structure
+                const [className, description, performance, time, ages, instructor] = row.map(cell => cell ? cell.trim() : '');
+                
+                // Only include classes with a name
+                if (!className) return null;
+                
+                return {
+                    day: sheet.title,
+                    className,
+                    description: description || 'No description available',
+                    performance: performance || '',
+                    time: time || 'TBD',
+                    ages: ages || 'All ages',
+                    instructor: instructor || 'TBD'
+                };
+            }).filter(Boolean); // Remove any null entries
         });
         
-        // Wait for all day fetches to complete
-        const allDayClasses = await Promise.all(dayPromises);
-        
-        // Flatten the array of arrays into a single array
+        const allDayClasses = await Promise.all(sheetPromises);
         allClasses = allDayClasses.flat();
         
-        console.log('Total classes loaded from all days:', allClasses.length);
+        console.log(`Loaded ${allClasses.length} classes from ${daySheets.length} sheets`);
+        displayAllClasses();
         
-        if (allClasses.length > 0) {
-            displayAllClasses();
-        } else {
-            // If no classes found in day sheets, try the main sheet as fallback
-            console.log('No classes found in day sheets, trying main sheet...');
-            try {
-                const response = await fetch(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json`);
-                if (response.ok) {
-                    const text = await response.text();
-                    const json = JSON.parse(text.substring(47).slice(0, -2));
-                    allClasses = processSheetData(json.table.rows);
-                    console.log(`Found ${allClasses.length} classes in main sheet`);
-                    displayAllClasses();
-                } else {
-                    throw new Error('No data found in any sheet');
-                }
-            } catch (error) {
-                console.error('Error loading from any sheet:', error);
-                allClasses = getSampleData();
-                displayAllClasses();
-                addBotMessage("Showing sample class data. Please check your Google Sheets configuration if you expected different classes.");
-            }
-        }
     } catch (error) {
         console.error('Error loading classes:', error);
         allClasses = getSampleData();
@@ -734,13 +736,16 @@ function createClassCard(cls) {
     };
     
     card.innerHTML = `
-        <h3>${cls.name || 'Unnamed Class'}</h3>
-        ${createField('Ages', cls.ageRange)}
+        <h3>${cls.className || 'Unnamed Class'}</h3>
         ${createField('Day', cls.day)}
         ${createField('Time', cls.time)}
+        ${createField('Ages', cls.ages)}
         ${createField('Instructor', cls.instructor)}
         ${createField('Performance', cls.performance)}
         ${cls.description ? `<div class="class-description">${cls.description}</div>` : ''}
+        <button class="book-btn" data-class="${encodeURIComponent(JSON.stringify(cls))}">
+            Book This Class
+        </button>
     `;
     
     return card;
@@ -771,11 +776,11 @@ async function callGroqAPI(query) {
                         
                         For each class, you'll receive:
                         - name: The name of the class
-                        - ageRange: The required age range (e.g., "4-6", "7+")
-                        - day: Day of the week the class is held
+                        - description: The description of the class
+                        - performance: The performance type of the class
                         - time: Class time
-                        - level: Skill level (Beginner, Intermediate, etc.)
-                        - description: Detailed description of the class
+                        - ages: The required age range (e.g., "4-6", "7+")
+                        - instructor: The instructor of the class
                         
                         The user's preferences will include:
                         - age: The child's age
