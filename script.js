@@ -132,13 +132,38 @@ async function processUserResponse(message) {
             const recommendedClasses = await getClassRecommendations(conversationState.userPreferences);
             
             if (recommendedClasses.length > 0) {
+                // Check if these are direct or closest matches
+                const matchType = recommendedClasses[0]?.matchType || 'direct';
+                const messageText = matchType === 'direct' 
+                    ? "Here are some classes that match your preferences:"
+                    : "I couldn't find perfect matches, but here are some similar classes that might work:";
+                
                 addBotMessage([
-                    "Here are some classes that match your preferences:",
+                    messageText,
                     ""
                 ].join('\n'), recommendedClasses);
             } else {
-                // If no matches, show nothing
-                addBotMessage("I couldn't find any classes that match your criteria.");
+                // If no matches from LLM, try a simple fallback based on age
+                console.log('No LLM matches, trying fallback matching...');
+                const fallbackClasses = allClasses.filter(cls => {
+                    if (!conversationState.userPreferences.age) return true;
+                    
+                    const ageRange = cls.ageRange || '';
+                    if (ageRange.includes('-')) {
+                        const [min, max] = ageRange.split('-').map(n => parseInt(n.trim()));
+                        return conversationState.userPreferences.age >= min && conversationState.userPreferences.age <= max;
+                    }
+                    return true;
+                }).slice(0, 3); // Limit to 3 classes
+                
+                if (fallbackClasses.length > 0) {
+                    addBotMessage([
+                        "Here are some classes that might work for your child:",
+                        ""
+                    ].join('\n'), fallbackClasses);
+                } else {
+                    addBotMessage("I couldn't find any classes that match your criteria.");
+                }
             }
             
             // Keep the grid updated but don't scroll to it
@@ -170,20 +195,23 @@ async function getClassRecommendations(prefs) {
     try {
         console.log('Getting class recommendations with prefs:', prefs);
         
-        // Prepare class data with all available fields
-        const classData = allClasses.map(cls => ({
-            name: cls.name || '',
-            description: cls.description || '',
-            ageRange: cls.ageRange || '',
-            day: cls.day || '',
-            time: cls.time || '',
-            instructor: cls.instructor || '',
-            level: cls.level || '',
-            style: cls.style || '',
-            performance: cls.performance || ''
-        }));
+        // Prepare class data with unique identifiers, filtering out empty classes
+        const classData = allClasses
+            .filter(cls => cls.name && cls.name.trim()) // Only include classes with valid names
+            .map((cls, index) => ({
+                id: `class_${index}`, // Unique identifier
+                name: cls.name.trim(),
+                description: cls.description || 'No description available',
+                ageRange: cls.ageRange || 'All ages',
+                day: cls.day || 'Not specified',
+                time: cls.time || 'Time TBD',
+                instructor: cls.instructor || 'TBD',
+                performance: cls.performance || '',
+                level: cls.level || ''
+            }));
         
         console.log('Sending class data to LLM:', classData);
+        console.log('User preferences:', prefs);
         
         // Call the LLM with the preferences and class data
         const response = await callGroqAPI(JSON.stringify({
@@ -193,26 +221,55 @@ async function getClassRecommendations(prefs) {
         }));
 
         console.log('Received response from LLM:', response);
+        console.log('Response classes array:', response?.classes);
+        console.log('Match type:', response?.matchType);
         
         // Handle the LLM response
         if (response && response.classes && Array.isArray(response.classes)) {
-            // If the response is an array of class names, map them back to full class objects
-            if (typeof response.classes[0] === 'string') {
-                const recommendedClasses = allClasses.filter(cls => 
-                    response.classes.includes(cls.name)
-                );
-                console.log('Mapped recommended classes by name:', recommendedClasses);
-                return recommendedClasses;
-            } 
-            // If the response is an array of class objects with name properties
-            else if (response.classes[0] && response.classes[0].name) {
-                const recommendedClassNames = response.classes.map(c => c.name);
-                const recommendedClasses = allClasses.filter(cls => 
-                    recommendedClassNames.includes(cls.name)
-                );
-                console.log('Mapped recommended classes from object array:', recommendedClasses);
-                return recommendedClasses;
-            }
+            console.log('LLM returned class IDs:', response.classes);
+            
+            // Map class IDs back to full class objects using the same mapping as sent to LLM
+            const classDataMap = {};
+            classData.forEach(cls => {
+                classDataMap[cls.id] = cls;
+            });
+            
+            console.log('Available class IDs in map:', Object.keys(classDataMap));
+            
+            // Map back to original allClasses objects
+            const recommendedClasses = response.classes
+                .map(classId => {
+                    const classFromLLM = classDataMap[classId];
+                    if (!classFromLLM) {
+                        console.warn(`Class ID ${classId} not found in map`);
+                        return null;
+                    }
+                    
+                    // Find the corresponding class in allClasses by matching name, day, and time
+                    const originalClass = allClasses.find(cls => 
+                        cls.name === classFromLLM.name && 
+                        cls.day === classFromLLM.day && 
+                        cls.time === classFromLLM.time
+                    );
+                    
+                    if (!originalClass) {
+                        console.warn(`Original class not found for:`, classFromLLM);
+                        return classFromLLM; // Fallback to LLM data
+                    }
+                    
+                    return originalClass;
+                })
+                .filter(Boolean); // Remove any undefined entries
+                
+            console.log('Final mapped recommended classes:', recommendedClasses);
+            
+            // Add match type to the classes for UI display
+            const classesWithMatchType = recommendedClasses.map(cls => ({
+                ...cls,
+                matchType: response.matchType || 'direct'
+            }));
+            
+            return classesWithMatchType;
         }
         
         console.warn('No valid classes found in LLM response');
@@ -508,11 +565,11 @@ async function loadClassesFromGoogleSheets() {
                 
                 return {
                     day: sheet.title,
-                    className,
+                    name: className,
                     description: description || 'No description available',
                     performance: performance || '',
                     time: time || 'TBD',
-                    ages: ages || 'All ages',
+                    ageRange: ages || 'All ages',
                     instructor: instructor || 'TBD'
                 };
             }).filter(Boolean); // Remove any null entries
@@ -634,9 +691,15 @@ function addBotMessage(text, suggestedClasses = []) {
         suggestedClasses.slice(0, 3).forEach((cls, index) => {
             if (!cls) return;
             
+            const isClosestMatch = cls.matchType === 'closest';
+            const matchBadge = isClosestMatch ? '<span class="match-badge closest">Similar Match</span>' : '<span class="match-badge direct">Perfect Match</span>';
+            
             content += `
-                <div class="class-card">
-                    <h4>${cls.name || 'Unnamed Class'}</h4>
+                <div class="class-card ${isClosestMatch ? 'closest-match' : 'direct-match'}">
+                    <div class="class-header">
+                        <h4>${cls.name || 'Unnamed Class'}</h4>
+                        ${matchBadge}
+                    </div>
                     <p><i class="fas fa-user-friends"></i> ${cls.ageRange || 'All Ages'}</p>
                     ${cls.day ? `<p><i class="far fa-calendar-alt"></i> ${cls.day} at ${cls.time || 'TBD'}</p>` : ''}
                     <p><i class="fas fa-signal"></i> ${cls.level || 'All Levels'}</p>
@@ -736,10 +799,10 @@ function createClassCard(cls) {
     };
     
     card.innerHTML = `
-        <h3>${cls.className || 'Unnamed Class'}</h3>
+        <h3>${cls.name || 'Unnamed Class'}</h3>
         ${createField('Day', cls.day)}
         ${createField('Time', cls.time)}
-        ${createField('Ages', cls.ages)}
+        ${createField('Ages', cls.ageRange)}
         ${createField('Instructor', cls.instructor)}
         ${createField('Performance', cls.performance)}
         ${cls.description ? `<div class="class-description">${cls.description}</div>` : ''}
@@ -771,45 +834,44 @@ async function callGroqAPI(query) {
         const queryData = JSON.parse(query);
         const { task, preferences, availableClasses } = queryData;
         
-        // Prepare the prompt
-        const systemPrompt = `You are a helpful dance class assistant. Your task is to recommend the most suitable dance classes based on the user's preferences.
-                        
-                        For each class, you'll receive:
-                        - name: The name of the class
-                        - description: The description of the class
-                        - performance: The performance type of the class
-                        - time: Class time
-                        - ages: The required age range (e.g., "4-6", "7+")
-                        - instructor: The instructor of the class
-                        
-                        The user's preferences will include:
-                        - age: The child's age
-                        - style: Preferred dance style (if any)
-                        - dayPreference: Preferred day(s) (if any)
-                        
-                        Return a JSON object with:
-                        {
-                            "text": "Your response to the user explaining the recommendations",
-                            "classes": ["array", "of", "matching", "class", "names"]
-                        }
-                        
-                        CRITICAL RULES:
-                        1. STRICT AGE REQUIREMENT: Only include classes where the child's age is within the class's age range. For example:
-                           - If age is 1.5, only include classes with age range like "1-2" or "1.5-3"
-                           - If age is 4, include "3-5" but not "5-7"
-                           - Never include classes where the age is outside the range
-                           - If no classes match the age range, return an empty array
-                        
-                        2. If a style is specified, only include classes that match that style
-                        
-                        3. Only consider day preference if specified
-                        
-                        DO NOT suggest alternatives if no classes match. Just return an empty array.`;
+        // Prepare simple text-based prompt
+        const systemPrompt = `You are a dance class assistant. Suggest the best matching classes from the given list based on user preferences.
 
-        const userPrompt = `User Preferences: ${JSON.stringify(preferences, null, 2)}
-                        
-                        Available Classes:
-                        ${JSON.stringify(availableClasses, null, 2)}`;
+IMPORTANT: Only suggest classes where the child's age fits the age range exactly.
+
+Return your response as JSON:
+{
+  "text": "Brief explanation of recommendations",
+  "classes": ["list", "of", "class", "ids"],
+  "matchType": "direct" or "closest"
+}
+
+Use "direct" when classes perfectly match all criteria (age, style, day).
+Use "closest" when you had to compromise on style or day preferences but age still matches.`;
+
+        // Format user preferences in simple text
+        const prefsText = `Child's Age: ${preferences.age}
+Dance Style Preference: ${preferences.style || 'Any style'}
+Day Preference: ${preferences.dayPreference || 'Any day'}`;
+
+        // Format classes in simple text
+        const classesText = availableClasses.map(cls => 
+            `Class ID: ${cls.id}
+Name: ${cls.name}
+Age Range: ${cls.ageRange}
+Day: ${cls.day}
+Time: ${cls.time}
+Description: ${cls.description}
+---`
+        ).join('\n');
+
+        const userPrompt = `USER PREFERENCES:
+${prefsText}
+
+AVAILABLE CLASSES:
+${classesText}
+
+Find classes that match the child's age and preferences. Age ${preferences.age} must fit within the class age range.`;
 
         // Save the prompt to a file
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -824,13 +886,13 @@ async function callGroqAPI(query) {
                 'Authorization': `Bearer ${GROQ_API_KEY}`
             },
             body: JSON.stringify({
-                model: 'llama3-70b-8192',
+                model: 'openai/gpt-oss-120b',
                 messages: [
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: userPrompt }
                 ],
-                temperature: 0.3,
-                max_tokens: 1500,
+                temperature: 1.0,
+                max_tokens: 8192,
                 response_format: { type: 'json_object' }
             })
         });

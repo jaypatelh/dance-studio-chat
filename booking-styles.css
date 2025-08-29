@@ -1,3 +1,46 @@
+/* Match Badge Styles */
+.match-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.match-badge.direct {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.match-badge.closest {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.class-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+}
+
+.class-header h4 {
+    margin: 0;
+    flex: 1;
+}
+
+.closest-match {
+    border-left: 4px solid #ffc107;
+}
+
+.direct-match {
+    border-left: 4px solid #28a745;
+}
+
 /* Calendar Styles */
 .calendar-header {
     text-align: center;
