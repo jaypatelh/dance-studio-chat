@@ -345,6 +345,7 @@ class BookingCalendar {
         this.container.addEventListener('click', (e) => {
             if (e.target.closest('.date-card')) {
                 const dateElement = e.target.closest('.date-card');
+                if (!dateElement || !dateElement.dataset) return;
                 const dateStr = dateElement.dataset.date;
                 const dayOfWeek = parseInt(dateElement.dataset.day);
                 
@@ -370,6 +371,7 @@ class BookingCalendar {
             // Time slot selection
             if (e.target.classList.contains('time-slot')) {
                 const timeSlot = e.target;
+                if (!timeSlot || !timeSlot.dataset) return;
                 const timeStr = timeSlot.dataset.time;
                 const timeLabel = timeSlot.dataset.label;
                 
