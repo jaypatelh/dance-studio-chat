@@ -11,6 +11,7 @@ build/
 *.swo
 *~
 config.dev.js
+index.dev.html
 
 # Local development overrides
 local-config.js

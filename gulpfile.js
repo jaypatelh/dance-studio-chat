@@ -12,13 +12,21 @@ gulp.task('build', () => {
 });
 
 // Development build task
-gulp.task('build:dev', () => {
-  return gulp.src('config.js')
-    .pipe(replace('{{GROQ_API_KEY}}', process.env.GROQ_API_KEY || ''))
-    .pipe(replace('{{GOOGLE_API_KEY}}', process.env.GOOGLE_API_KEY || ''))
-    .pipe(rename('config.dev.js'))
-    .pipe(gulp.dest('.'));
-});
+gulp.task('build:dev', gulp.parallel(
+  () => {
+    return gulp.src('config.js')
+      .pipe(replace('{{GROQ_API_KEY}}', process.env.GROQ_API_KEY || ''))
+      .pipe(replace('{{GOOGLE_API_KEY}}', process.env.GOOGLE_API_KEY || ''))
+      .pipe(rename('config.dev.js'))
+      .pipe(gulp.dest('.'));
+  },
+  () => {
+    return gulp.src('index.html')
+      .pipe(replace('config.js', 'config.dev.js'))
+      .pipe(rename('index.dev.html'))
+      .pipe(gulp.dest('.'));
+  }
+));
 
 // Development server with build
 gulp.task('serve', gulp.series('build:dev', () => {
@@ -28,6 +36,6 @@ gulp.task('serve', gulp.series('build:dev', () => {
     cache: -1
   });
   server.listen(8080, () => {
-    console.log('Server running on http://localhost:8080');
+    console.log('Server running on http://localhost:8080/index.dev.html');
   });
 }));
