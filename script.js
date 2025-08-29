@@ -41,16 +41,6 @@ function reloadClasses() {
 
 // Initialize the chat when the page loads
 window.onload = function() {
-    // Add a reload button for testing
-    const header = document.querySelector('header');
-    if (header) {
-        const reloadButton = document.createElement('button');
-        reloadButton.textContent = 'Reload Classes';
-        reloadButton.style.marginLeft = '10px';
-        reloadButton.onclick = reloadClasses;
-        header.appendChild(reloadButton);
-    }
-    
     loadClassesFromGoogleSheets();
     loadCalendly(); // Load Calendly script
     
@@ -70,13 +60,19 @@ window.onload = function() {
 };
 
 // Handle user responses
-async function processUserResponse(message) {
+async function processUserResponse(message, event) {
+    // Handle "Search again" button click
+    if (event && event.target && event.target.classList.contains('search-again')) {
+        conversationState.waitingForAge = true;
+        conversationState.userPreferences = {};
+        addBotMessage("Let's find more classes! What's your child's age?");
+        return;
+    }
+
     // Handle booking confirmation
     if (conversationState.waitingForBookingConfirmation) {
         if (message.toLowerCase().includes('yes') || message.toLowerCase().includes('sure') || message === 'y') {
-            showBookingForm();
-        } else {
-            addBotMessage("No problem! Let me know if you have any other questions about our classes.");
+            // Handle booking confirmation logic here
         }
         conversationState.waitingForBookingConfirmation = false;
         return;
@@ -124,8 +120,8 @@ async function processUserResponse(message) {
         conversationState.userPreferences.dayPreference = message.toLowerCase();
         conversationState.waitingForDay = false;
         
-        // Show typing indicator while processing
-        const typingId = showTypingIndicator();
+        // Show loading indicator while processing
+        const loadingId = showLoadingIndicator("Finding the perfect classes for you...");
         
         try {
             // Get recommendations from LLM
@@ -173,19 +169,12 @@ async function processUserResponse(message) {
             console.error('Error getting class recommendations:', error);
             addBotMessage("I'm having trouble finding classes right now. Please try again later.");
         } finally {
-            removeTypingIndicator(typingId);
+            removeLoadingIndicator(loadingId);
         }
         
         // Reset conversation state for a new query
         setTimeout(() => {
             conversationState.waitingForAge = true;
-            conversationState.waitingForStyle = false;
-            conversationState.waitingForDay = false;
-            conversationState.userPreferences = {};
-            
-            addBotMessage([
-                "Would you like to search for another class? Just let me know your child's age to get started!"
-            ].join('\n'));
         }, 1000);
     }
 }
@@ -236,7 +225,7 @@ async function getClassRecommendations(prefs) {
             
             console.log('Available class IDs in map:', Object.keys(classDataMap));
             
-            // Map back to original allClasses objects
+            // Map back to original allClasses objects using direct ID lookup
             const recommendedClasses = response.classes
                 .map(classId => {
                     const classFromLLM = classDataMap[classId];
@@ -245,18 +234,18 @@ async function getClassRecommendations(prefs) {
                         return null;
                     }
                     
-                    // Find the corresponding class in allClasses by matching name, day, and time
-                    const originalClass = allClasses.find(cls => 
-                        cls.name === classFromLLM.name && 
-                        cls.day === classFromLLM.day && 
-                        cls.time === classFromLLM.time
-                    );
+                    console.log(`Direct mapping ${classId}:`, classFromLLM);
+                    
+                    // Extract the index from the class ID (e.g., "class_35" -> 35)
+                    const index = parseInt(classId.replace('class_', ''));
+                    const originalClass = allClasses[index];
                     
                     if (!originalClass) {
-                        console.warn(`Original class not found for:`, classFromLLM);
+                        console.warn(`Original class at index ${index} not found`);
                         return classFromLLM; // Fallback to LLM data
                     }
                     
+                    console.log(`Successfully mapped to index ${index}:`, originalClass);
                     return originalClass;
                 })
                 .filter(Boolean); // Remove any undefined entries
@@ -618,7 +607,7 @@ function addUserMessage(text) {
         </div>
     `;
     chatMessages.appendChild(messageDiv);
-    // scrollToBottom(); // disabled by AUTO_SCROLL flag
+    scrollToBottom();
 }
 
 // Add Calendly widget script
@@ -637,12 +626,28 @@ function showBookingForm() {
     
     // Initialize the booking calendar
     bookingCalendar = new BookingCalendar(form, (date, time) => {
-        // This callback will be called when a booking is confirmed
-        console.log('Booking confirmed:', { date, time });
+        console.log('Booking confirmed for:', date, time);
+        conversationState.waitingForBookingConfirmation = false;
+        
+        // Add confirmation message to chat
+        setTimeout(() => {
+            addBotMessage([
+                "✅ **Booking Confirmed!**",
+                "",
+                `Your call has been scheduled for ${date} at ${time}.`,
+                "",
+                "Our studio owner will call you at the scheduled time to discuss dance classes for your child.",
+                "",
+                "If you need to reschedule or have any questions, please contact us directly."
+            ].join('\n'));
+        }, 1000);
     });
     
     // Show the booking form
     bookingCalendar.showBookingForm();
+    
+    // Scroll to show the booking form
+    scrollToBottom();
 }
 
 // Initialize booking calendar
@@ -655,6 +660,14 @@ document.addEventListener('click', (e) => {
         e.preventDefault();
         conversationState.waitingForBookingConfirmation = true;
         showBookingForm();
+    }
+    
+    // Handle search again button
+    if (e.target.classList.contains('search-again')) {
+        e.preventDefault();
+        conversationState.waitingForAge = true;
+        conversationState.userPreferences = {};
+        addBotMessage("Let's find more classes! What's your child's age?");
     }
     
     // Handle no thanks button
@@ -708,22 +721,23 @@ function addBotMessage(text, suggestedClasses = []) {
             `;
         });
         
-        // Add follow-up question
+        // Add follow-up options
         if (suggestedClasses.length > 0) {
             content += `
                 <div class="follow-up">
-                    <p>Would you like to know more about any of these classes? Just let me know which one interests you!</p>
-                    <p>Or would you like to schedule a 15-minute call with our studio owner to discuss these classes in more detail?</p>
+                    <p>What would you like to do next?</p>
                     <div class="button-group">
-                        <button class="btn-secondary schedule-call" style="flex: 1;">Yes, schedule a call</button>
-                        <button class="btn-secondary" style="flex: 1;">No thanks</button>
+                        <button class="btn-secondary schedule-call">Schedule a call with our studio owner</button>
+                        <button class="btn-outline search-again">Search for different classes</button>
                     </div>
-                    ${suggestedClasses.length > 3 ? 
+                </div>
+            `;
+        }
+        
+        content += `${suggestedClasses.length > 3 ? 
                         `<p class="more-classes">There are ${remainingCount} more classes available. You can view them in the list below or ask me about specific criteria.</p>` 
                         : ''
-                    }
-                </div>`;
-        }
+                    }`;
         
         content += '</div>'; // Close class-suggestions
     }
@@ -738,10 +752,32 @@ function addBotMessage(text, suggestedClasses = []) {
     `;
     
     chatMessages.appendChild(messageDiv);
-    // scrollToBottom(); // disabled by AUTO_SCROLL flag
+    scrollToBottom();
     
     // Do not scroll the class grid into view
     // (Requirement: keep conversation view stable without jumping)
+}
+
+// Show loading indicator
+function showLoadingIndicator(message = "Processing...") {
+    const id = 'loading-' + Date.now();
+    const loadingDiv = document.createElement('div');
+    loadingDiv.id = id;
+    loadingDiv.className = 'message bot';
+    loadingDiv.innerHTML = `
+        <div class="avatar">
+            <i class="fas fa-robot"></i>
+        </div>
+        <div class="content">
+            <div class="loading-message">
+                <div class="loading-spinner"></div>
+                ${message}
+            </div>
+        </div>
+    `;
+    chatMessages.appendChild(loadingDiv);
+    scrollToBottom();
+    return id;
 }
 
 // Show typing indicator
@@ -761,8 +797,16 @@ function showTypingIndicator() {
         </div>
     `;
     chatMessages.appendChild(typingDiv);
-    // scrollToBottom(); // disabled by AUTO_SCROLL flag
+    scrollToBottom();
     return id;
+}
+
+// Remove loading indicator
+function removeLoadingIndicator(id) {
+    const indicator = document.getElementById(id);
+    if (indicator) {
+        indicator.remove();
+    }
 }
 
 // Remove typing indicator
@@ -780,10 +824,14 @@ function handleKeyPress(e) {
     }
 }
 
-// Scroll chat to bottom (disabled when AUTO_SCROLL is false)
+// Scroll chat to bottom
 function scrollToBottom() {
-    if (!AUTO_SCROLL) return;
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    setTimeout(() => {
+        const chatContainer = document.getElementById('chat-messages');
+        if (chatContainer) {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+    }, 100);
 }
 
 // Create a class card element

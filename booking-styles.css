@@ -41,6 +41,26 @@
     border-left: 4px solid #28a745;
 }
 
+/* Booking Loading Styles */
+.booking-loading {
+    text-align: center;
+    padding: 2rem;
+    color: var(--primary-color);
+}
+
+.booking-loading .loading-spinner {
+    width: 30px;
+    height: 30px;
+    border-width: 4px;
+    margin: 0 auto 1rem;
+}
+
+.booking-loading p {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
 /* Calendar Styles */
 .calendar-header {
     text-align: center;

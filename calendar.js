@@ -205,6 +205,14 @@ class BookingCalendar {
     }
     
     async confirmBooking(dateStr, timeStr) {
+        // Show loading indicator
+        this.container.innerHTML = `
+            <div class="booking-loading">
+                <div class="loading-spinner"></div>
+                <p>Booking your call...</p>
+            </div>
+        `;
+        
         try {
             // Save to Google Sheets
             await this.saveBookingToSheets({
@@ -230,6 +238,11 @@ class BookingCalendar {
                 conversationState.waitingForBookingInfo = false;
                 conversationState.waitingForBookingConfirmation = false;
             });
+            
+            // Call the callback with booking details
+            if (this.onDateSelect) {
+                this.onDateSelect(dateStr, timeStr);
+            }
         } catch (error) {
             console.error('Error saving booking:', error);
             alert('There was an error saving your booking. Please try again.');
@@ -245,28 +258,19 @@ class BookingCalendar {
             // Add timestamp
             bookingData.timestamp = new Date().toISOString();
             
-            // Create a form to submit the data (works around CORS issues)
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = SCRIPT_URL;
-            form.target = '_blank'; // Open in new tab to see any errors
-            
-            // Add data as hidden inputs
-            Object.entries(bookingData).forEach(([key, value]) => {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = value;
-                form.appendChild(input);
+            // Submit data via fetch to avoid page redirect
+            const response = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors', // This prevents CORS issues but we won't get response details
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams(bookingData)
             });
             
-            // Add form to page and submit
-            document.body.appendChild(form);
-            form.submit();
-            document.body.removeChild(form);
-            
-            // Since we're submitting a form, we can't get the response directly
-            // Just assume success if no errors
+            // Since we're using no-cors mode, we can't read the response
+            // Just assume success if no network error occurred
+            console.log('Booking data sent successfully');
             return { status: 'success', message: 'Booking submitted successfully' };
             
         } catch (error) {
