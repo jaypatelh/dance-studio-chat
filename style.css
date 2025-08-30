@@ -27,6 +27,12 @@ body {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    box-sizing: border-box;
+}
+
+/* Ensure all elements use border-box sizing */
+*, *::before, *::after {
+    box-sizing: border-box;
 }
 
 header {
@@ -455,4 +461,279 @@ footer {
     margin-top: auto;
     background: #f8f9fa;
     border-top: 1px solid #e9ecef;
+}
+
+/* Mobile Responsive Styles */
+@media screen and (max-width: 768px) {
+    body {
+        padding: 10px;
+        margin: 0;
+        max-width: 100%;
+        min-height: 100vh;
+    }
+
+    .container {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    header {
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 8px;
+    }
+
+    header h1 {
+        font-size: 1.4rem;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    header p {
+        font-size: 0.9rem;
+        margin: 5px 0 0 0;
+    }
+
+    /* Chat container mobile optimization */
+    .chat-container {
+        height: 400px;
+        margin-bottom: 15px;
+        border-radius: 8px;
+    }
+
+    .chat-messages {
+        padding: 15px;
+        gap: 12px;
+    }
+
+    .message {
+        max-width: 90%;
+    }
+
+    .message .avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 1rem;
+        margin-right: 8px;
+    }
+
+    .message.user .avatar {
+        margin-right: 0;
+        margin-left: 8px;
+    }
+
+    .message .content {
+        padding: 10px 12px;
+        font-size: 0.9rem;
+        line-height: 1.4;
+    }
+
+    .chat-input-container {
+        padding: 12px;
+        flex-wrap: wrap;
+    }
+
+    #user-input {
+        padding: 10px 14px;
+        font-size: 16px; /* Prevents zoom on iOS */
+        border-radius: 18px;
+    }
+
+    #send-btn {
+        width: 40px;
+        height: 40px;
+        margin-left: 8px;
+    }
+
+    /* Class grid mobile optimization */
+    .class-grid-container {
+        margin: 15px auto;
+        padding: 0 10px;
+    }
+
+    .class-grid-container h2 {
+        font-size: 1.4rem;
+        margin-bottom: 15px;
+    }
+
+    .day-classes-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+        padding: 15px;
+    }
+
+    .class-card {
+        padding: 15px;
+        margin-bottom: 12px;
+    }
+
+    .class-card h3,
+    .class-card h4 {
+        font-size: 1.1rem;
+        margin-bottom: 8px;
+    }
+
+    .class-card p {
+        font-size: 0.9rem;
+        margin: 4px 0;
+    }
+
+    .class-card .class-description {
+        font-size: 0.85rem;
+        margin-top: 10px;
+        padding-top: 10px;
+    }
+
+    /* Accordion mobile optimization */
+    .accordion-header {
+        padding: 15px;
+    }
+
+    .accordion-header h3 {
+        font-size: 1.1rem;
+    }
+
+    .class-count {
+        font-size: 0.8rem;
+        padding: 3px 6px;
+    }
+
+    /* Footer mobile optimization */
+    footer {
+        padding: 12px;
+        font-size: 0.8rem;
+    }
+}
+
+/* Extra small mobile devices */
+@media screen and (max-width: 480px) {
+    body {
+        padding: 5px;
+    }
+
+    header {
+        padding: 12px;
+        margin-bottom: 12px;
+    }
+
+    header h1 {
+        font-size: 1.2rem;
+    }
+
+    header p {
+        font-size: 0.85rem;
+    }
+
+    .chat-container {
+        height: 350px;
+        margin-bottom: 12px;
+    }
+
+    .chat-messages {
+        padding: 12px;
+        gap: 10px;
+    }
+
+    .message .content {
+        padding: 8px 10px;
+        font-size: 0.85rem;
+    }
+
+    .chat-input-container {
+        padding: 10px;
+    }
+
+    #user-input {
+        padding: 8px 12px;
+        font-size: 16px;
+    }
+
+    #send-btn {
+        width: 36px;
+        height: 36px;
+    }
+
+    .class-grid-container {
+        padding: 0 5px;
+    }
+
+    .class-grid-container h2 {
+        font-size: 1.2rem;
+    }
+
+    .day-classes-grid {
+        padding: 12px;
+        gap: 12px;
+    }
+
+    .class-card {
+        padding: 12px;
+    }
+
+    .class-card h3,
+    .class-card h4 {
+        font-size: 1rem;
+    }
+
+    .class-card p {
+        font-size: 0.85rem;
+    }
+
+    .accordion-header {
+        padding: 12px;
+    }
+
+    .accordion-header h3 {
+        font-size: 1rem;
+    }
+}
+
+/* Iframe-specific optimizations */
+@media screen and (max-width: 768px) {
+    /* Remove margins when in iframe */
+    html {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        overflow-x: hidden;
+    }
+
+    body {
+        width: 100%;
+        overflow-x: hidden;
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+    }
+
+    /* Ensure content fits within iframe */
+    .container,
+    .class-grid-container {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    /* Prevent horizontal scrolling */
+    * {
+        max-width: 100%;
+    }
+
+    /* Optimize touch targets for mobile */
+    button,
+    .date-card,
+    .time-slot,
+    .class-card {
+        min-height: 44px;
+        touch-action: manipulation;
+    }
+
+    /* Improve text readability on mobile */
+    .message .content,
+    .class-card p,
+    .class-card h4 {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
 }

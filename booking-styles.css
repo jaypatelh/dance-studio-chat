@@ -428,3 +428,234 @@
     width: 100%;
     margin: 1rem 0;
 }
+
+/* Mobile Responsive Styles for Booking Components */
+@media screen and (max-width: 768px) {
+    /* Calendar and booking form mobile optimization */
+    .booking-form {
+        padding: 1rem;
+        margin: 0.5rem 0;
+        border-radius: 8px;
+    }
+
+    .booking-form h3 {
+        font-size: 1.2rem;
+        margin-bottom: 1rem;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-group input {
+        padding: 0.7rem;
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+
+    .form-actions {
+        flex-direction: column;
+        gap: 0.8rem;
+    }
+
+    .btn-primary,
+    .btn-secondary {
+        padding: 0.7rem 1.2rem;
+        font-size: 0.95rem;
+        width: 100%;
+    }
+
+    /* Calendar mobile optimization */
+    .calendar-navigation {
+        padding: 0.3rem 0;
+        margin-bottom: 0.8rem;
+    }
+
+    .month-year {
+        font-size: 1rem;
+    }
+
+    .dates-simple {
+        gap: 8px;
+        padding: 8px 0;
+    }
+
+    .date-card {
+        min-width: 100px;
+        padding: 12px 8px;
+        border-radius: 8px;
+    }
+
+    .day-number {
+        font-size: 1.2em;
+    }
+
+    .day-name,
+    .month {
+        font-size: 0.8em;
+    }
+
+    .available-indicator,
+    .unavailable-indicator {
+        font-size: 0.7em;
+    }
+
+    /* Time slots mobile optimization */
+    .time-slots {
+        margin-top: 1rem;
+        padding-top: 1rem;
+    }
+
+    .time-slots h4 {
+        font-size: 0.95rem;
+        margin-bottom: 0.8rem;
+    }
+
+    .time-slots-grid {
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+        gap: 0.6rem;
+    }
+
+    .time-slot {
+        padding: 0.5rem 0.6rem;
+        font-size: 0.85rem;
+        border-radius: 4px;
+    }
+
+    /* Booking summary mobile optimization */
+    .booking-summary {
+        padding: 1rem;
+        margin-top: 1rem;
+        border-radius: 6px;
+    }
+
+    .booking-summary h4 {
+        font-size: 1rem;
+        margin-bottom: 0.8rem;
+    }
+
+    .booking-summary p {
+        font-size: 0.9rem;
+        margin: 0.4rem 0;
+    }
+
+    /* Booking confirmation mobile optimization */
+    .booking-confirmation {
+        padding: 1.5rem 1rem;
+    }
+
+    .booking-confirmation .checkmark {
+        font-size: 2.5rem;
+        margin-bottom: 0.8rem;
+    }
+
+    .booking-confirmation h3 {
+        font-size: 1.3rem;
+        margin: 0.8rem 0 0.4rem;
+    }
+
+    .booking-confirmation p {
+        font-size: 0.9rem;
+        margin: 0.4rem 0;
+    }
+
+    .booking-confirmation .btn-primary {
+        margin-top: 1rem;
+        max-width: 180px;
+    }
+
+    /* Match badges mobile optimization */
+    .match-badge {
+        padding: 0.2rem 0.4rem;
+        font-size: 0.7rem;
+        border-radius: 8px;
+    }
+
+    .class-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    /* Calendly container mobile optimization */
+    #calendly-container {
+        min-height: 500px;
+        margin: 0.8rem 0;
+    }
+
+    /* Button group mobile optimization */
+    .button-group {
+        flex-direction: column;
+        gap: 0.8rem;
+        margin: 1rem 0;
+    }
+
+    .message .button-group {
+        margin: 0.8rem 0 0.4rem;
+    }
+
+    .message .btn-secondary {
+        padding: 0.5rem 0.8rem;
+        font-size: 0.85rem;
+        width: 100%;
+    }
+}
+
+/* Extra small mobile devices for booking components */
+@media screen and (max-width: 480px) {
+    .booking-form {
+        padding: 0.8rem;
+    }
+
+    .booking-form h3 {
+        font-size: 1.1rem;
+    }
+
+    .form-group input {
+        padding: 0.6rem;
+    }
+
+    .btn-primary,
+    .btn-secondary {
+        padding: 0.6rem 1rem;
+        font-size: 0.9rem;
+    }
+
+    .date-card {
+        min-width: 90px;
+        padding: 10px 6px;
+    }
+
+    .day-number {
+        font-size: 1.1em;
+    }
+
+    .time-slots-grid {
+        grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+        gap: 0.5rem;
+    }
+
+    .time-slot {
+        padding: 0.4rem 0.5rem;
+        font-size: 0.8rem;
+    }
+
+    .booking-summary {
+        padding: 0.8rem;
+    }
+
+    .booking-confirmation {
+        padding: 1.2rem 0.8rem;
+    }
+
+    .booking-confirmation .checkmark {
+        font-size: 2rem;
+    }
+
+    .booking-confirmation h3 {
+        font-size: 1.2rem;
+    }
+
+    #calendly-container {
+        min-height: 450px;
+    }
+}
