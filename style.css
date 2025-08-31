@@ -21,10 +21,10 @@ html, body {
     line-height: 1.6;
     color: var(--text-color);
     background: white;
-    height: auto;
+    height: 100%;
     margin: 0;
     padding: 0;
-    overflow: visible;
+    overflow: hidden;
 }
 
 /* Ensure all elements use border-box sizing */
