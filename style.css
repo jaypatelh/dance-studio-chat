@@ -16,14 +16,15 @@
     --header-bg: linear-gradient(135deg, #4a6bff, #6a5acd);
 }
 
-body {
+html, body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     line-height: 1.6;
     color: var(--text-color);
     background: white;
-    min-height: 100vh;
+    height: 100%;
     margin: 0;
     padding: 0;
+    overflow: hidden;
 }
 
 /* Ensure all elements use border-box sizing */
@@ -88,10 +89,16 @@ header h1 {
     border: none;
     box-shadow: none;
     border-radius: 0;
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
+    height: 100%;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
 }
 
 .chat-messages {
@@ -164,6 +171,7 @@ header h1 {
     border-top: 1px solid #e9ecef;
     background: white;
     margin: 0;
+    flex-shrink: 0;
 }
 
 #user-input {
@@ -200,14 +208,7 @@ header h1 {
     background: #3a5bef;
 }
 
-/* Chat container takes full height */
-.chat-container {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    height: calc(100vh - 200px);
-    max-height: 800px;
-}
+/* Remove this duplicate/conflicting chat container rule */
 
 .message.bot .class-card {
     background: #f8f9fa;
@@ -498,8 +499,6 @@ footer {
 
     /* Chat container mobile optimization */
     .chat-container {
-        height: 400px;
-        margin-bottom: 15px;
         border-radius: 8px;
     }
 
@@ -626,10 +625,6 @@ footer {
         font-size: 0.85rem;
     }
 
-    .chat-container {
-        height: 350px;
-        margin-bottom: 12px;
-    }
 
     .chat-messages {
         padding: 12px;
