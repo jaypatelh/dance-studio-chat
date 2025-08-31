@@ -232,6 +232,24 @@ class BookingCalendar {
             
             await this.saveBookingToSheets(bookingData);
             
+            // Send email notification with conversation summary
+            if (window.emailService) {
+                try {
+                    console.log('Attempting to send email notification...');
+                    const emailResult = await window.emailService.sendBookingNotification(bookingData);
+                    console.log('Email notification result:', emailResult);
+                    if (emailResult.success) {
+                        console.log('Email notification sent successfully');
+                    } else {
+                        console.error('Email notification failed:', emailResult.message);
+                    }
+                } catch (emailError) {
+                    console.error('Failed to send email notification:', emailError);
+                }
+            } else {
+                console.error('Email service not available');
+            }
+            
             this.container.innerHTML = `
                 <div class="booking-confirmation">
                     <div class="checkmark">✓</div>
@@ -343,16 +361,29 @@ class BookingCalendar {
     setupEventListeners() {
         // Date selection
         this.container.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent event bubbling that might trigger external libraries
             if (e.target.closest('.date-card')) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                
                 const dateElement = e.target.closest('.date-card');
-                if (!dateElement || !dateElement.dataset) return;
+                if (!dateElement) return;
+                
+                // Check if dataset exists and has required properties
+                if (!dateElement.dataset || !dateElement.dataset.date || !dateElement.dataset.day) {
+                    console.warn('Date element missing required data attributes');
+                    return;
+                }
+                
                 const dateStr = dateElement.dataset.date;
                 const dayOfWeek = parseInt(dateElement.dataset.day);
                 
                 if (dateElement.classList.contains('available')) {
                     // Remove previous selection
                     this.container.querySelectorAll('.date-card.selected').forEach(el => {
-                        el.classList.remove('selected');
+                        if (el && el.classList) {
+                            el.classList.remove('selected');
+                        }
                     });
                     
                     // Add selection to clicked date
@@ -370,15 +401,27 @@ class BookingCalendar {
             
             // Time slot selection
             if (e.target.classList.contains('time-slot')) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                
                 const timeSlot = e.target;
-                if (!timeSlot || !timeSlot.dataset) return;
+                if (!timeSlot) return;
+                
+                // Check if dataset exists and has required properties
+                if (!timeSlot.dataset || !timeSlot.dataset.time || !timeSlot.dataset.label) {
+                    console.warn('Time slot element missing required data attributes');
+                    return;
+                }
+                
                 const timeStr = timeSlot.dataset.time;
                 const timeLabel = timeSlot.dataset.label;
                 
                 if (!timeSlot.classList.contains('unavailable')) {
                     // Remove previous selection
                     this.container.querySelectorAll('.time-slot.selected').forEach(el => {
-                        el.classList.remove('selected');
+                        if (el && el.classList) {
+                            el.classList.remove('selected');
+                        }
                     });
                     
                     // Add selection to clicked time
@@ -444,7 +487,9 @@ class BookingCalendar {
         
         // Clear selections
         this.container.querySelectorAll('.selected').forEach(el => {
-            el.classList.remove('selected');
+            if (el && el.classList) {
+                el.classList.remove('selected');
+            }
         });
         
         this.selectedDate = null;

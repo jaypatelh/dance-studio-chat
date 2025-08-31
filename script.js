@@ -53,9 +53,7 @@ window.onload = function() {
     // Add welcome message after a short delay
     setTimeout(() => {
         const welcomeMessage = [
-            "👋 Hi there! I'm your Dance Class Assistant. Let's find the perfect dance class for your child!",
-            "",
-            "To get started, what's your child's age?"
+            "👋 Hi! To get started, what's your child's age?"
         ].join('\n');
         
         // Initialize conversation history with welcome message
