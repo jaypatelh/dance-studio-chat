@@ -21,10 +21,10 @@ html, body {
     line-height: 1.6;
     color: var(--text-color);
     background: white;
-    height: 100%;
+    height: auto;
     margin: 0;
     padding: 0;
-    overflow: hidden;
+    overflow: visible;
 }
 
 /* Ensure all elements use border-box sizing */
@@ -90,7 +90,8 @@ header h1 {
     box-shadow: none;
     border-radius: 0;
     width: 100%;
-    height: 100vh;
+    height: 100svh; /* Small viewport height - actual screen size */
+    max-height: 100svh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -496,7 +497,8 @@ footer {
     /* Chat container mobile optimization */
     .chat-container {
         border-radius: 0;
-        height: 100vh;
+        height: 100svh;
+        max-height: 100svh;
     }
 
     .chat-messages {
