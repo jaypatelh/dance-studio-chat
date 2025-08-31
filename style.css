@@ -20,14 +20,10 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     line-height: 1.6;
     color: var(--text-color);
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-    background-color: #f9f9f9;
-    display: flex;
-    flex-direction: column;
+    background: white;
     min-height: 100vh;
-    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
 /* Ensure all elements use border-box sizing */
@@ -87,11 +83,13 @@ header h1 {
 /* Chat Container */
 .chat-container {
     background: var(--card-bg);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow);
-    overflow: hidden;
-    margin-bottom: 2rem;
-    height: 500px;
+    padding: 0;
+    margin: 0;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+    width: 100vw;
+    height: 100vh;
     display: flex;
     flex-direction: column;
 }
@@ -102,7 +100,8 @@ header h1 {
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 1rem;
+    background: var(--chat-bg);
 }
 
 .message {
@@ -164,6 +163,7 @@ header h1 {
     padding: 15px;
     border-top: 1px solid #e9ecef;
     background: white;
+    margin: 0;
 }
 
 #user-input {
@@ -181,7 +181,7 @@ header h1 {
     border-color: var(--primary-color);
 }
 
-#send-btn {
+#send-button {
     background: var(--primary-color);
     color: white;
     border: none;
@@ -196,8 +196,8 @@ header h1 {
     transition: background-color 0.3s;
 }
 
-#send-btn:hover {
-    background: var(--secondary-color);
+#send-button:hover {
+    background: #3a5bef;
 }
 
 /* Chat container takes full height */

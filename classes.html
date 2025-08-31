@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dance Classes</title>
+    <link rel="stylesheet" href="classes-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" crossorigin="anonymous">
+</head>
+<body>
+    <div class="filters-section">
+        <div class="filter-group">
+            <label for="age-filter">Age Group:</label>
+            <select id="age-filter">
+                <option value="">All Ages</option>
+                <option value="2-3">Ages 2-3</option>
+                <option value="3-4">Ages 3-4</option>
+                <option value="4-5">Ages 4-5</option>
+                <option value="5-6">Ages 5-6</option>
+                <option value="6-8">Ages 6-8</option>
+                <option value="8-12">Ages 8-12</option>
+                <option value="teen">Teen</option>
+                <option value="adult">Adult</option>
+            </select>
+        </div>
+        
+        <div class="filter-group">
+            <label for="style-filter">Dance Style:</label>
+            <select id="style-filter">
+                <option value="">All Styles</option>
+                <option value="ballet">Ballet</option>
+                <option value="jazz">Jazz</option>
+                <option value="tap">Tap</option>
+                <option value="hip-hop">Hip Hop</option>
+                <option value="contemporary">Contemporary</option>
+                <option value="lyrical">Lyrical</option>
+            </select>
+        </div>
+        
+        <div class="filter-group">
+            <label for="day-filter">Day:</label>
+            <select id="day-filter">
+                <option value="">All Days</option>
+                <option value="monday">Monday</option>
+                <option value="tuesday">Tuesday</option>
+                <option value="wednesday">Wednesday</option>
+                <option value="thursday">Thursday</option>
+                <option value="friday">Friday</option>
+                <option value="saturday">Saturday</option>
+                <option value="sunday">Sunday</option>
+            </select>
+        </div>
+        
+        <button id="clear-filters" class="btn-secondary">Clear Filters</button>
+    </div>
+
+    <div id="loading" class="loading-indicator">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Loading classes...</p>
+    </div>
+    
+    <div id="classes-grid" class="classes-grid">
+        <!-- Classes will be loaded here -->
+    </div>
+
+    <script src="config.dev.js"></script>
+    <script src="classes-script.js"></script>
+</body>
+</html>

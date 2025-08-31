@@ -4,6 +4,7 @@
   "description": "Dance Studio Class Booking System",
   "scripts": {
     "build": "gulp build",
+    "build:classes": "gulp build",
     "start": "gulp serve"
   },
   "dependencies": {

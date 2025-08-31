@@ -6,7 +6,7 @@ const GOOGLE_SHEET_ID = '1GFYV6qiAy8fUk8nDbbnHiiOL_jzADSWgZZuzVJ55JC0';
 
 // DOM Elements
 const userInput = document.getElementById('user-input');
-const sendBtn = document.getElementById('send-btn');
+const sendBtn = document.getElementById('send-button');
 const chatMessages = document.getElementById('chat-messages');
 
 // Control whether the chat auto-scrolls
@@ -49,6 +49,15 @@ window.onload = function() {
     loadClassesFromGoogleSheets();
     loadOwnerAvailability();
     loadCalendly(); // Load Calendly script
+    
+    // Setup event listeners
+    if (sendBtn) {
+        sendBtn.addEventListener('click', handleSendMessage);
+    }
+    
+    if (userInput) {
+        userInput.addEventListener('keypress', handleKeyPress);
+    }
     
     // Add welcome message after a short delay
     setTimeout(() => {
@@ -422,80 +431,8 @@ function getSampleData() {
 
 // Display all classes in accordion format grouped by day
 function displayAllClasses() {
-    const grid = document.getElementById('class-grid');
-    
-    if (!grid) {
-        console.error('Class grid element not found!');
-        return;
-    }
-    
-    // Clear existing content
-    grid.innerHTML = '';
-    
-    if (allClasses.length === 0) {
-        console.log('No classes to display');
-        grid.innerHTML = '<p>No classes available at the moment.</p>';
-        return;
-    }
-    
-    // Group classes by day
-    const classesByDay = {};
-    const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    
-    // Initialize all days
-    dayOrder.forEach(day => {
-        classesByDay[day] = [];
-    });
-    
-    // Group classes
-    allClasses.forEach(cls => {
-        const day = cls.day || 'Unknown';
-        if (classesByDay[day]) {
-            classesByDay[day].push(cls);
-        }
-    });
-    
-    // Create accordion structure
-    grid.innerHTML = '<div class="classes-accordion"></div>';
-    const accordion = grid.querySelector('.classes-accordion');
-    
-    dayOrder.forEach(day => {
-        const dayClasses = classesByDay[day];
-        if (dayClasses.length === 0) return; // Skip days with no classes
-        
-        const daySection = document.createElement('div');
-        daySection.className = 'accordion-section';
-        
-        daySection.innerHTML = `
-            <div class="accordion-header" data-day="${day}">
-                <h3>${day}</h3>
-                <span class="class-count">${dayClasses.length} class${dayClasses.length !== 1 ? 'es' : ''}</span>
-                <span class="accordion-toggle">▼</span>
-            </div>
-            <div class="accordion-content">
-                <div class="day-classes-grid"></div>
-            </div>
-        `;
-        
-        const classesGrid = daySection.querySelector('.day-classes-grid');
-        
-        // Add classes for this day
-        dayClasses.forEach(cls => {
-            try {
-                const card = createClassCard(cls);
-                if (card) {
-                    classesGrid.appendChild(card);
-                }
-            } catch (error) {
-                console.error('Error creating class card:', error, 'Class data:', cls);
-            }
-        });
-        
-        accordion.appendChild(daySection);
-    });
-    
-    // Add click handlers for accordion
-    setupAccordionHandlers();
+    // Class grid functionality has been moved to separate classes.html page
+    console.log('Class grid display has been moved to classes.html');
 }
 
 // Setup accordion click handlers
