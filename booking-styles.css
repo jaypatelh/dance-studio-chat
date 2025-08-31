@@ -370,22 +370,28 @@
 
 /* Button Styles */
 .btn-primary {
-    background-color: var(--primary-color);
+    background: linear-gradient(135deg, #4f7cff, #2563eb);
     color: white;
     border: none;
-    padding: 0.8rem 1.5rem;
-    border-radius: 6px;
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 700;
     cursor: pointer;
-    font-size: 1rem;
-    font-weight: 500;
     transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
     flex: 1;
+    box-shadow: 0 4px 15px rgba(79, 124, 255, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .btn-primary:hover {
-    background-color: #3a5bef;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(135deg, #3a5bef, #1d4ed8);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(79, 124, 255, 0.4);
 }
 
 .btn-secondary {

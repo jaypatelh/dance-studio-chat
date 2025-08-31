@@ -1042,8 +1042,7 @@ function addBotMessage(text, suggestedClasses = []) {
                 <div class="follow-up">
                     <p>What would you like to do next?</p>
                     <div class="button-group">
-                        <button class="btn-secondary schedule-call">Schedule a call with our studio owner</button>
-                        <button class="btn-outline search-again">Search for different classes</button>
+                        <button class="btn-primary schedule-call">Schedule a call with our studio owner</button>
                     </div>
                 </div>
             `;
