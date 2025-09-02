@@ -110,9 +110,10 @@ header h1 {
     }
     
     .chat-messages {
-        padding: 6px 6px 60px 6px !important;
+        padding: 6px 6px 50px 6px !important;
         gap: 0.4rem !important;
-        height: calc(100vh - 60px) !important;
+        height: calc(100vh - 50px) !important;
+        padding-bottom: 50px !important;
     }
     
     .message .avatar {
@@ -153,6 +154,12 @@ header h1 {
     .chat-input-container {
         padding: 4px !important;
         gap: 3px !important;
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 1000 !important;
+        box-shadow: 0 -1px 5px rgba(0, 0, 0, 0.2) !important;
     }
     
     #user-input {
@@ -290,6 +297,7 @@ header h1 {
     right: 0;
     z-index: 1000;
     box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+    min-height: 44px;
 }
 
 #user-input {
