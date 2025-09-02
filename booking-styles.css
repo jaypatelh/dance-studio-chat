@@ -317,12 +317,12 @@
 
 /* Booking Form Styles */
 .booking-form {
-    background: white;
+    background: var(--card-bg);
     border-radius: var(--border-radius);
     padding: 1.5rem;
     margin: 1rem 0;
     box-shadow: var(--shadow);
-    border: 1px solid #e0e0e0;
+    border: 1px solid #4b5563;
 }
 
 .booking-form h3 {
@@ -344,22 +344,28 @@
     display: block;
     margin-bottom: 0.5rem;
     font-weight: 500;
-    color: var(--dark-gray);
+    color: var(--text-color);
 }
 
 .form-group input {
     width: 100%;
     padding: 0.8rem;
-    border: 1px solid #ddd;
+    border: 1px solid var(--input-border);
     border-radius: 6px;
     font-size: 1rem;
     transition: border-color 0.3s;
+    background: var(--input-bg);
+    color: var(--input-text);
 }
 
 .form-group input:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgba(74, 107, 255, 0.2);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.form-group input::placeholder {
+    color: #9ca3af;
 }
 
 .form-actions {
