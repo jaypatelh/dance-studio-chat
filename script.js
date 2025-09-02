@@ -121,8 +121,8 @@ async function processUserResponse(message, event) {
                 JSON.stringify(conversationState.userPreferences) !== JSON.stringify(response.preferences);
             
             if (hasAge && preferencesChanged) {
-                // Show loading message for class search
-                const retryLoadingId = showLoadingIndicator("Searching for classes...");
+                // Update loading message for class search
+                updateLoadingMessage(loadingId, "Searching for classes...");
                 
                 try {
                     // Extract preferences and get class recommendations
@@ -130,7 +130,7 @@ async function processUserResponse(message, event) {
                     conversationState.currentClasses = classes;
                     conversationState.userPreferences = response.preferences;
                     
-                    removeLoadingIndicator(retryLoadingId);
+                    removeLoadingIndicator(loadingId);
                     
                     if (classes.length > 0) {
                         const matchType = classes[0]?.matchType || 'direct';
@@ -145,9 +145,10 @@ async function processUserResponse(message, event) {
                     }
                     
                     displayAllClasses();
-                } catch (classError) {
-                    removeLoadingIndicator(retryLoadingId);
-                    addBotMessage("I'm having trouble accessing our class database right now. Please try again in a moment, or schedule a call with our studio owner for immediate assistance.");
+                } catch (error) {
+                    console.error('Error getting class recommendations:', error);
+                    removeLoadingIndicator(loadingId);
+                    addBotMessage("I'm having trouble finding classes right now. Let me help you with general information instead.");
                 }
             } else if (!hasAge) {
                 // No age provided, just show the conversation response
@@ -160,16 +161,16 @@ async function processUserResponse(message, event) {
                 }
             }
         } else if (response.action === 'refine_classes') {
-            // Show loading for class refinement
-            const refineLoadingId = showLoadingIndicator("Finding updated classes...");
+            // Update loading for class refinement
+            updateLoadingMessage(loadingId, "Finding updated classes...");
             
             try {
                 // Refine existing class suggestions
                 const refinedClasses = await refineClassSuggestions(response.preferences, conversationState.currentClasses);
                 conversationState.currentClasses = refinedClasses;
-                conversationState.userPreferences = { ...conversationState.userPreferences, ...response.preferences };
+                conversationState.userPreferences = response.preferences;
                 
-                removeLoadingIndicator(refineLoadingId);
+                removeLoadingIndicator(loadingId);
                 
                 if (refinedClasses.length > 0) {
                     // Use the LLM's explanation text for refined classes too
@@ -179,9 +180,11 @@ async function processUserResponse(message, event) {
                 } else {
                     addBotMessage(response.message || "I couldn't find classes matching those specific requirements. Would you like to schedule a call to discuss other options?");
                 }
-            } catch (refineError) {
-                removeLoadingIndicator(refineLoadingId);
-                addBotMessage("I'm having trouble updating the class suggestions right now. Please try again in a moment.");
+            } catch (error) {
+                console.error('Error refining classes:', error);
+                removeLoadingIndicator(loadingId);
+                addBotMessage("I'm having trouble updating the class suggestions. Here are the current recommendations:");
+                displayClasses(conversationState.currentClasses);
             }
         } else if (response.action === 'schedule_call') {
             // Suggest scheduling a call
@@ -1029,6 +1032,20 @@ function showLoadingIndicator(message = "Processing...") {
     chatMessages.appendChild(loadingDiv);
     scrollToBottom();
     return id;
+}
+
+// Update loading message text
+function updateLoadingMessage(id, newMessage) {
+    const loadingElement = document.getElementById(id);
+    if (loadingElement) {
+        const messageElement = loadingElement.querySelector('.loading-message');
+        if (messageElement) {
+            messageElement.innerHTML = `
+                <div class="loading-spinner"></div>
+                ${newMessage}
+            `;
+        }
+    }
 }
 
 // Show typing indicator
