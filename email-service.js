@@ -1,9 +1,8 @@
 // Email service for sending booking confirmations
 class EmailService {
     constructor() {
-        this.emailEndpoint = '/.netlify/functions/send-booking-email';
-        // For local testing, we'll use a simple email API service
-        this.localEmailEndpoint = 'https://api.emailjs.com/api/v1.0/email/send';
+        // Using Gmail SMTP service only
+        console.log('EmailService initialized - using Gmail SMTP only');
     }
 
     // Extract conversation summary from chat history
@@ -94,126 +93,36 @@ This booking was made through the dance studio chat assistant.
         return emailContent;
     }
 
-    // Send email notification
+    // Send email notification using Gmail SMTP only
     async sendBookingNotification(bookingData) {
         try {
             const conversationSummary = this.extractConversationSummary();
             
             console.log('=== EMAIL SERVICE DEBUG ===');
-            console.log('Sending booking notification email...');
+            console.log('Sending booking notification via Gmail SMTP...');
             console.log('Booking data:', bookingData);
             console.log('Conversation summary:', conversationSummary);
-            console.log('Current hostname:', window.location.hostname);
             
-            // For local testing, use direct SMTP sending
-            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                console.log('Local environment detected, sending via SMTP');
-                const result = await this.sendViaDirectSMTP(bookingData, conversationSummary);
-                console.log('SMTP result:', result);
-                return result;
-            }
+            // Use Gmail SMTP service directly
+            const gmailService = new GmailSMTPService();
+            const result = await gmailService.sendEmail(bookingData, conversationSummary);
             
-            // Send via Netlify function for production
-            const response = await fetch(this.emailEndpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    bookingData: bookingData,
-                    conversationSummary: conversationSummary
-                })
-            });
-
-            if (response.ok) {
-                console.log('Booking notification email sent successfully');
-                return { success: true, message: 'Email sent successfully' };
+            if (result.success) {
+                console.log('Booking notification sent via Gmail SMTP:', result);
+                return { success: true, message: 'Booking notification sent successfully via Gmail' };
             } else {
-                console.error('Failed to send email:', response.status, response.statusText);
-                // Fallback to mailto
-                this.sendViaMailto(bookingData);
-                return { success: false, message: 'Netlify function failed, using mailto fallback' };
+                throw new Error(result.message);
             }
         } catch (error) {
-            console.error('Error sending booking notification:', error);
-            
-            // Fallback: Try to send via mailto (will open user's email client)
-            this.sendViaMailto(bookingData);
-            
-            return { success: false, message: 'Email service unavailable, using fallback method' };
-        }
-    }
-
-    // Fallback method using mailto
-    sendViaMailto(bookingData) {
-        try {
-            const conversationSummary = this.extractConversationSummary();
-            const emailContent = this.formatEmailContent(bookingData, conversationSummary);
-            
-            const subject = encodeURIComponent(`New Dance Class Booking - ${bookingData.name} (${bookingData.date} at ${bookingData.time})`);
-            const body = encodeURIComponent(emailContent);
-            
-            const mailtoLink = `mailto:jaypatelh@gmail.com?subject=${subject}&body=${body}`;
-            
-            // This will open the user's default email client
-            window.open(mailtoLink, '_blank');
-            
-            console.log('Opened email client for manual sending');
-        } catch (error) {
-            console.error('Error with mailto fallback:', error);
-        }
-    }
-
-    // Direct Gmail SMTP sending for local testing
-    async sendViaDirectSMTP(bookingData, conversationSummary) {
-        try {
-            console.log('=== SMTP DEBUG ===');
-            const emailContent = this.formatEmailContent(bookingData, conversationSummary);
-            console.log('Email content prepared, length:', emailContent.length);
-            
-            const requestData = {
-                to: 'jaypatelh@gmail.com',
-                subject: `New Dance Class Booking - ${bookingData.name} (${bookingData.date} at ${bookingData.time})`,
-                html: emailContent.replace(/\n/g, '<br>'),
-                text: emailContent,
-                bookingData: bookingData,
-                conversationSummary: conversationSummary
+            console.error('Error sending booking notification via Gmail SMTP:', error);
+            return { 
+                success: false, 
+                message: 'Failed to send booking notification. Please contact support.',
+                error: error.message
             };
-            
-            console.log('Making request to SMTP server...');
-            console.log('Request URL: http://localhost:3001/send-gmail');
-            console.log('Request data:', requestData);
-            
-            // Send to local SMTP server that uses your Gmail credentials
-            const response = await fetch('http://localhost:3001/send-gmail', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(requestData)
-            });
-
-            console.log('Response status:', response.status);
-            console.log('Response ok:', response.ok);
-
-            if (response.ok) {
-                const result = await response.json();
-                console.log('✅ Email sent successfully via Gmail SMTP:', result);
-                return { success: true, message: 'Email sent via Gmail SMTP' };
-            } else {
-                const errorText = await response.text();
-                console.error('❌ Gmail SMTP server error:', response.status, response.statusText, errorText);
-                // Fallback to mailto
-                this.sendViaMailto(bookingData);
-                return { success: false, message: 'Gmail SMTP server unavailable, opened email client as fallback' };
-            }
-        } catch (error) {
-            console.error('❌ Gmail SMTP connection error:', error);
-            // Fallback to mailto
-            this.sendViaMailto(bookingData);
-            return { success: false, message: 'Could not connect to Gmail SMTP server, opened email client as fallback' };
         }
     }
+
 }
 
 // Create global instance

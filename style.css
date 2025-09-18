@@ -1,24 +1,24 @@
 :root {
-    --primary-color: #6366f1;
-    --secondary-color: #8b5cf6;
+    --primary-color: #000000;
+    --secondary-color: #333333;
     --accent-color: #f59e0b;
-    --text-color: #e5e7eb;
-    --light-gray: #374151;
-    --dark-gray: #1f2937;
+    --text-color: #000000;
+    --light-gray: #f0f0f0;
+    --dark-gray: #e0e0e0;
     --success-color: #10b981;
     --warning-color: #f59e0b;
     --error-color: #ef4444;
     --border-radius: 12px;
-    --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-    --card-bg: #374151;
-    --chat-bg: #2F2E2E;
+    --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --card-bg: #ffffff;
+    --chat-bg: #FFF0F5;
     --header-text: #ffffff;
-    --header-bg: linear-gradient(135deg, #6366f1, #8b5cf6);
-    --user-bubble: #6366f1;
-    --bot-bubble: #374151;
-    --input-bg: #374151;
-    --input-border: #4b5563;
-    --input-text: #e5e7eb;
+    --header-bg: #000000;
+    --user-bubble: #000000;
+    --bot-bubble: #ffffff;
+    --input-bg: #ffffff;
+    --input-border: #cccccc;
+    --input-text: #000000;
 }
 
 html, body {
@@ -37,6 +37,55 @@ html, body {
     box-sizing: border-box;
 }
 
+/* Main header styles */
+.main-header {
+    background: var(--header-bg);
+    color: var(--header-text);
+    padding: 0 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1001;
+    height: 100px;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    padding: 0;
+    margin: 0;
+}
+
+.logo {
+    height: 100px;
+    width: auto;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+}
+
+.home-btn {
+    background: var(--primary-color);
+    color: white;
+    text-decoration: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
+}
+
+.home-btn:hover {
+    background: var(--secondary-color);
+}
+
+/* Old header styles for compatibility */
 header {
     text-align: center;
     margin-bottom: 1rem;
@@ -94,11 +143,10 @@ header h1 {
     background: var(--chat-bg);
     padding: 0;
     margin: 0;
-    height: 100vh;
+    height: calc(100vh - 100px);
+    margin-top: 100px;
     display: flex;
     flex-direction: column;
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow);
     overflow: hidden;
     position: relative;
 }
@@ -203,7 +251,7 @@ header h1 {
     background: var(--chat-bg);
     min-height: 0;
     color: var(--text-color);
-    height: calc(100vh - 70px);
+    height: calc(100vh - 170px);
 }
 
 .message {
@@ -244,8 +292,9 @@ header h1 {
     padding: 6px 10px;
     border-radius: 14px 14px 14px 4px;
     color: var(--text-color);
-    border: 1px solid #4b5563;
+    border: 1px solid #cccccc;
     font-size: 0.8rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .message.user .content {
@@ -298,7 +347,7 @@ header h1 {
 
 #user-input:focus {
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
 }
 
 #user-input::placeholder {
@@ -350,19 +399,21 @@ header h1 {
 
 .message.bot .class-card {
     background: var(--card-bg);
-    border: 1px solid #4b5563;
+    border: 1px solid #cccccc;
     border-radius: 8px;
     padding: 8px;
     margin: 6px 0;
     transition: transform 0.2s, box-shadow 0.2s;
     max-width: 100%;
     color: var(--text-color);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .message.bot .class-card h4 {
     margin: 0 0 4px 0;
-    color: #f3f4f6;
+    color: var(--primary-color);
     font-size: 0.85rem;
+    font-weight: 600;
 }
 
 .message.bot .class-card p {
@@ -375,8 +426,8 @@ header h1 {
 .message.bot .class-card .class-description {
     margin-top: 10px;
     padding-top: 10px;
-    border-top: 1px solid #4b5563;
-    color: #d1d5db;
+    border-top: 1px solid #cccccc;
+    color: var(--text-color);
     font-size: 0.9em;
 }
 
@@ -394,10 +445,10 @@ header h1 {
 
 .class-card {
     background-color: var(--card-bg);
-    border: 1px solid #4b5563;
+    border: 1px solid #cccccc;
     border-radius: var(--border-radius);
     overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     transition: transform 0.3s, box-shadow 0.3s;
     animation: fadeIn 0.3s ease-out;
     padding: 20px;
@@ -412,10 +463,11 @@ header h1 {
 }
 
 .class-card h3 {
-    color: #f3f4f6;
+    color: var(--primary-color);
     margin-top: 0;
     margin-bottom: 10px;
     font-size: 1.2em;
+    font-weight: 600;
 }
 
 .class-card p {
@@ -425,7 +477,8 @@ header h1 {
 }
 
 .class-card strong {
-    color: #f3f4f6;
+    color: var(--primary-color);
+    font-weight: 600;
 }
 
 .class-card .class-time {
@@ -554,8 +607,8 @@ line-height: 1.5;
 .class-card .class-description {
     margin-top: 12px;
     padding-top: 12px;
-    border-top: 1px solid #4b5563;
-    color: #d1d5db;
+    border-top: 1px solid #cccccc;
+    color: var(--text-color);
     font-size: 0.95em;
     line-height: 1.5;
 }
@@ -579,14 +632,14 @@ line-height: 1.5;
 
 .message.bot .suggestion-note {
     font-size: 0.95em;
-    color: #d1d5db;
+    color: var(--text-color);
     margin-bottom: 12px;
     font-style: italic;
 }
 
 .message.bot .more-classes {
     font-size: 0.9em;
-    color: #d1d5db;
+    color: var(--text-color);
     margin-top: 10px;
     font-style: italic;
 }
@@ -750,6 +803,26 @@ footer {
         padding: 12px;
         font-size: 0.8rem;
     }
+}
+
+/* Additional text color fixes */
+.message.bot .content p,
+.message.bot .content div,
+.message.bot .content span {
+    color: var(--text-color) !important;
+}
+
+/* Ensure booking summary text is black */
+.booking-summary p,
+.booking-summary div,
+.booking-summary span {
+    color: #000000 !important;
+}
+
+/* Calendar text colors */
+.date-card.selected .day-name,
+.date-card.selected .month {
+    color: white !important;
 }
 
 /* Extra small mobile devices */

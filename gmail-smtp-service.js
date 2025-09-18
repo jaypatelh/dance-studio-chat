@@ -30,7 +30,7 @@ class GmailSMTPService {
         
         try {
             // Send to our local server endpoint that will use Gmail SMTP
-            const response = await fetch('/send-gmail', {
+            const response = await fetch('http://localhost:3001/send-gmail', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

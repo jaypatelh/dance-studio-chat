@@ -257,15 +257,15 @@ class BookingCalendar {
                     <p>We've scheduled your call for:</p>
                     <p><strong>${dateStr} at ${timeDisplay}</strong></p>
                     <p>We'll call you at the scheduled time.</p>
-                    <button class="btn-primary" id="close-booking">Done</button>
                 </div>
             `;
             
-            document.getElementById('close-booking').addEventListener('click', () => {
+            // Automatically clean up after a short delay
+            setTimeout(() => {
                 this.container.closest('.booking-form').remove();
                 conversationState.waitingForBookingInfo = false;
                 conversationState.waitingForBookingConfirmation = false;
-            });
+            }, 2000); // Auto-close after 2 seconds
             
             // Add persistent reminder message to chat
             setTimeout(() => {

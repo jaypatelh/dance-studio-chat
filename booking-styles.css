@@ -145,7 +145,7 @@
 
 .day-name {
     font-size: 0.9em;
-    color: #666;
+    color: #000000;
     font-weight: 500;
     margin-bottom: 4px;
 }
@@ -158,7 +158,7 @@
 
 .month {
     font-size: 0.8em;
-    color: #666;
+    color: #000000;
     margin-bottom: 8px;
 }
 
@@ -237,7 +237,7 @@
 
 .time-slots h4 {
     margin-top: 0;
-    color: var(--dark-gray);
+    color: #000000;
     font-size: 1rem;
     margin-bottom: 1rem;
 }
@@ -279,7 +279,7 @@
 
 .booking-summary h4 {
     margin-top: 0;
-    color: var(--dark-gray);
+    color: #000000;
     margin-bottom: 1rem;
 }
 
@@ -376,7 +376,7 @@
 
 /* Button Styles */
 .btn-primary {
-    background: linear-gradient(135deg, #4f7cff, #2563eb);
+    background: #000000;
     color: white;
     border: none;
     padding: 1rem 2rem;
@@ -389,15 +389,15 @@
     display: inline-block;
     text-align: center;
     flex: 1;
-    box-shadow: 0 4px 15px rgba(79, 124, 255, 0.3);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .btn-primary:hover {
-    background: linear-gradient(135deg, #3a5bef, #1d4ed8);
+    background: #333333;
     transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(79, 124, 255, 0.4);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
 }
 
 .btn-secondary {
