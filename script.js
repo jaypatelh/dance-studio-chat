@@ -57,6 +57,52 @@ window.onload = function() {
     
     if (userInput) {
         userInput.addEventListener('keypress', handleKeyPress);
+        
+        // Fix iOS Safari keyboard viewport issue
+        if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+            let initialViewportHeight = window.innerHeight;
+            
+            userInput.addEventListener('focus', () => {
+                // Store initial height and scroll input into view
+                initialViewportHeight = window.innerHeight;
+                setTimeout(() => {
+                    userInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            });
+            
+            userInput.addEventListener('blur', () => {
+                // Multiple attempts to fix viewport on keyboard close
+                setTimeout(() => {
+                    window.scrollTo(0, 0);
+                    document.body.scrollTop = 0;
+                    document.documentElement.scrollTop = 0;
+                }, 100);
+                
+                // Second attempt with longer delay
+                setTimeout(() => {
+                    if (window.visualViewport) {
+                        window.scrollTo(0, 0);
+                    }
+                    // Force a repaint
+                    document.body.style.height = '100%';
+                    setTimeout(() => {
+                        document.body.style.height = '';
+                    }, 10);
+                }, 300);
+            });
+            
+            // Listen for visual viewport changes (iOS 13+)
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', () => {
+                    if (window.visualViewport.height === initialViewportHeight) {
+                        // Keyboard closed, reset scroll
+                        setTimeout(() => {
+                            window.scrollTo(0, 0);
+                        }, 50);
+                    }
+                });
+            }
+        }
     }
     
     // Add welcome message after a short delay
