@@ -29,8 +29,6 @@ html, body {
     height: 100%;
     margin: 0;
     padding: 0;
-    overflow: hidden;
-    position: relative;
 }
 
 /* Ensure all elements use border-box sizing */
@@ -47,10 +45,7 @@ html, body {
     justify-content: space-between;
     align-items: center;
     box-shadow: var(--shadow);
-    position: sticky;
-    top: 0;
     width: 100%;
-    z-index: 1000;
     height: 100px;
     border-radius: 0;
 }
