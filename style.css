@@ -52,6 +52,7 @@ html, body {
     right: 0;
     z-index: 1001;
     height: 100px;
+    border-radius: 0;
 }
 
 .logo-container {
