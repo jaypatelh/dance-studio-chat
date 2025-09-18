@@ -24,22 +24,18 @@ class GmailSMTPService {
     }
 
     async sendEmail(bookingData, conversationSummary) {
-        // Since browsers can't directly use SMTP (security restriction),
-        // we need to use a server endpoint that uses your Gmail credentials
-        const emailContent = this.formatEmailContent(bookingData, conversationSummary);
-        
         try {
-            // Send to our local server endpoint that will use Gmail SMTP
-            const response = await fetch('http://localhost:3001/send-gmail', {
+            // Use Netlify function for email sending
+            const functionUrl = window.location.hostname === 'localhost' 
+                ? '/.netlify/functions/send-email'  // Local development
+                : '/.netlify/functions/send-email'; // Production
+            
+            const response = await fetch(functionUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    to: 'jaypatelh@gmail.com',
-                    subject: `New Dance Class Booking - ${bookingData.name} (${bookingData.date} at ${bookingData.time})`,
-                    html: emailContent.replace(/\n/g, '<br>'),
-                    text: emailContent,
                     bookingData: bookingData,
                     conversationSummary: conversationSummary
                 })
@@ -47,14 +43,15 @@ class GmailSMTPService {
 
             if (response.ok) {
                 const result = await response.json();
-                console.log('Email sent via Gmail SMTP:', result);
-                return { success: true, message: 'Email sent via Gmail SMTP' };
+                console.log('Email sent via Netlify function:', result);
+                return { success: true, message: 'Email sent successfully' };
             } else {
-                throw new Error(`Server error: ${response.status}`);
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Server error: ${response.status}`);
             }
         } catch (error) {
-            console.error('Gmail SMTP error:', error);
-            return { success: false, message: `Gmail SMTP failed: ${error.message}` };
+            console.error('Email sending error:', error);
+            return { success: false, message: `Email failed: ${error.message}` };
         }
     }
 
