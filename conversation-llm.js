@@ -139,6 +139,12 @@ Current classes shown: ${conversationState.currentClasses.length} classes
     
     while (retryCount <= maxRetries) {
         try {
+            // Debug logging
+            console.log('=== API DEBUG ===');
+            console.log('window.appConfig:', window.appConfig);
+            console.log('openRouterApiKey:', window.appConfig?.openRouterApiKey);
+            console.log('API key length:', window.appConfig?.openRouterApiKey?.length);
+            
             const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                 method: 'POST',
                 headers: {

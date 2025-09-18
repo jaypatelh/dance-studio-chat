@@ -1197,7 +1197,7 @@ ${classesText}`;
                 const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${config.openRouterApiKey}`,
+                        'Authorization': `Bearer ${window.appConfig.openRouterApiKey}`,
                         'Content-Type': 'application/json',
                         'HTTP-Referer': window.location.origin,
                         'X-Title': 'Dance Studio Chat'
