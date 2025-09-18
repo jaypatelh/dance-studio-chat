@@ -950,7 +950,12 @@ document.addEventListener('click', (e) => {
         conversationState.waitingForBookingConfirmation = true;
         showBookingForm();
         // Scroll to show the booking form
-        setTimeout(() => scrollToBottom(), 100);
+        setTimeout(() => {
+            const bookingForm = document.querySelector('.booking-form');
+            if (bookingForm) {
+                bookingForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 100);
     }
     
     // Handle search again button

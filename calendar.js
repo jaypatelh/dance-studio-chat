@@ -431,11 +431,11 @@ class BookingCalendar {
                     // Show booking summary
                     this.showBookingSummary();
                     
-                    // Scroll to show the booking summary
+                    // Scroll to show the booking summary panel
                     setTimeout(() => {
-                        const chatContainer = document.getElementById('chat-messages');
-                        if (chatContainer) {
-                            chatContainer.scrollTop = chatContainer.scrollHeight;
+                        const bookingSummary = document.getElementById('booking-summary');
+                        if (bookingSummary) {
+                            bookingSummary.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         }
                     }, 100);
                 }
@@ -446,11 +446,12 @@ class BookingCalendar {
                 if (this.selectedDate && this.selectedTime) {
                     this.confirmBooking(this.selectedDate, this.selectedTime);
                     
-                    // Scroll to show the confirmation
+                    // Scroll to show the confirmation (keep it reasonable)
                     setTimeout(() => {
-                        const chatContainer = document.getElementById('chat-messages');
-                        if (chatContainer) {
-                            chatContainer.scrollTop = chatContainer.scrollHeight;
+                        const bookingForm = document.querySelector('.booking-form');
+                        if (bookingForm) {
+                            // Scroll to show the booking form without going too far
+                            bookingForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         }
                     }, 500);
                 }
