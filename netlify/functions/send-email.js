@@ -47,7 +47,7 @@ exports.handler = async (event, context) => {
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: 'jaypatelh@gmail.com',
-      subject: `New Dance Class Booking - ${bookingData.name} (${bookingData.date} at ${bookingData.time})`,
+      subject: `Consultation Call - ${bookingData.name} (${bookingData.date} at ${bookingData.time})`,
       text: emailContent,
       html: emailContent.replace(/\n/g, '<br>')
     };
@@ -91,18 +91,18 @@ exports.handler = async (event, context) => {
 
 function formatEmailContent(bookingData, conversationSummary) {
   return `
-New Dance Studio Consultation Call
+Consultation Call Scheduled
 
 CALL DETAILS:
 =============
 Name: ${bookingData.name}
 Phone: ${bookingData.phone}
-Scheduled: ${bookingData.date} at ${bookingData.time}
+Call them at: ${bookingData.date} at ${bookingData.time}
 
-FULL CONVERSATION:
-==================
-${conversationSummary.fullConversation || 'No conversation history available'}
+CUSTOMER SUMMARY:
+=================
+${conversationSummary.customerSummary || 'Customer inquired about dance classes through the chat assistant.'}
 
-This booking was made through the dance studio chat assistant.
+This consultation was scheduled through the dance studio chat assistant.
   `.trim();
 }
