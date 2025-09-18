@@ -73,20 +73,20 @@ window.onload = function() {
             userInput.addEventListener('blur', () => {
                 // Multiple attempts to fix viewport on keyboard close
                 setTimeout(() => {
-                    // Scroll to bottom to show latest messages instead of top
-                    scrollToBottom();
+                    // Scroll to show latest user message at top
+                    scrollToLatestUserMessage();
                 }, 100);
                 
                 // Second attempt with longer delay
                 setTimeout(() => {
                     if (window.visualViewport) {
-                        scrollToBottom();
+                        scrollToLatestUserMessage();
                     }
                     // Force a repaint
                     document.body.style.height = '100%';
                     setTimeout(() => {
                         document.body.style.height = '';
-                        scrollToBottom();
+                        scrollToLatestUserMessage();
                     }, 10);
                 }, 300);
             });
@@ -95,9 +95,9 @@ window.onload = function() {
             if (window.visualViewport) {
                 window.visualViewport.addEventListener('resize', () => {
                     if (window.visualViewport.height === initialViewportHeight) {
-                        // Keyboard closed, scroll to bottom to show latest messages
+                        // Keyboard closed, scroll to show latest user message at top
                         setTimeout(() => {
-                            scrollToBottom();
+                            scrollToLatestUserMessage();
                         }, 50);
                     }
                 });
@@ -1143,6 +1143,22 @@ function scrollToBottom() {
     const chatContainer = document.getElementById('chat-messages');
     if (chatContainer) {
         chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+}
+
+// Scroll to show latest user message at top of viewport
+function scrollToLatestUserMessage() {
+    const userMessages = document.querySelectorAll('.message.user');
+    if (userMessages.length > 0) {
+        const latestUserMessage = userMessages[userMessages.length - 1];
+        latestUserMessage.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start',
+            inline: 'nearest'
+        });
+    } else {
+        // Fallback to scroll to top if no user messages found
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
 
