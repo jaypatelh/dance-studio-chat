@@ -73,20 +73,20 @@ window.onload = function() {
             userInput.addEventListener('blur', () => {
                 // Multiple attempts to fix viewport on keyboard close
                 setTimeout(() => {
-                    window.scrollTo(0, 0);
-                    document.body.scrollTop = 0;
-                    document.documentElement.scrollTop = 0;
+                    // Scroll to bottom to show latest messages instead of top
+                    scrollToBottom();
                 }, 100);
                 
                 // Second attempt with longer delay
                 setTimeout(() => {
                     if (window.visualViewport) {
-                        window.scrollTo(0, 0);
+                        scrollToBottom();
                     }
                     // Force a repaint
                     document.body.style.height = '100%';
                     setTimeout(() => {
                         document.body.style.height = '';
+                        scrollToBottom();
                     }, 10);
                 }, 300);
             });
@@ -95,9 +95,9 @@ window.onload = function() {
             if (window.visualViewport) {
                 window.visualViewport.addEventListener('resize', () => {
                     if (window.visualViewport.height === initialViewportHeight) {
-                        // Keyboard closed, reset scroll
+                        // Keyboard closed, scroll to bottom to show latest messages
                         setTimeout(() => {
-                            window.scrollTo(0, 0);
+                            scrollToBottom();
                         }, 50);
                     }
                 });
