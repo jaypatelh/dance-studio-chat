@@ -1,4 +1,4 @@
-// Configuration - placeholders will be replaced during build process
+// Configuration - placeholders will be replaced during build process - Updated API key
 const config = {
     googleApiKey: '{{GOOGLE_API_KEY}}',
     openRouterApiKey: '{{OPENROUTER_API_KEY}}',
