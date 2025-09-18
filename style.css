@@ -152,95 +152,7 @@ header h1 {
     position: relative;
 }
 
-/* Iframe-specific styles for more compact layout - FONT SIZES ONLY */
-@media screen and (max-width: 500px), (max-height: 600px) {
-    .message .avatar {
-        width: 24px !important;
-        height: 24px !important;
-        font-size: 0.75rem !important;
-    }
-    
-    .message.bot .content {
-        padding: 4px 8px !important;
-        font-size: 0.75rem !important;
-    }
-    
-    .message.user .content {
-        padding: 4px 8px !important;
-        font-size: 0.75rem !important;
-    }
-    
-    .message.bot .class-card {
-        padding: 6px !important;
-        margin: 4px 0 !important;
-    }
-    
-    .message.bot .class-card h4 {
-        font-size: 0.8rem !important;
-        margin: 0 0 3px 0 !important;
-    }
-    
-    .message.bot .class-card p {
-        font-size: 0.65rem !important;
-        margin: 0.1rem 0 0 !important;
-    }
-    
-    .chat-input-container {
-        padding: 4px !important;
-        gap: 6px !important;
-    }
-    
-    #user-input {
-        font-size: 16px !important;
-        padding: 6px 10px !important;
-        max-width: calc(100% - 50px) !important;
-        flex: 1 !important;
-        min-width: 0 !important;
-    }
-    
-    #send-button {
-        font-size: 0.8rem !important;
-        width: 40px !important;
-        height: 40px !important;
-        flex-shrink: 0 !important;
-        min-width: 40px !important;
-    }
-    
-    .loading-message {
-        font-size: 0.75rem !important;
-        gap: 6px !important;
-    }
-    
-    /* Booking button styles for iframe */
-    .booking-btn {
-        padding: 4px 10px !important;
-        font-size: 0.7rem !important;
-        border-radius: 14px !important;
-        margin: 4px 0 !important;
-    }
-    
-    /* Button group styles */
-    .button-group {
-        gap: 6px !important;
-    }
-    
-    .btn-primary {
-        padding: 4px 10px !important;
-        font-size: 0.7rem !important;
-        border-radius: 14px !important;
-    }
-    
-    /* Follow-up section */
-    .follow-up {
-        padding: 6px !important;
-        margin: 4px 0 !important;
-    }
-    
-    .follow-up p {
-        font-size: 0.7rem !important;
-        margin: 4px 0 !important;
-    }
-}
+/* Removed iframe-specific styles - now optimized for direct mobile viewing */
 
 .chat-messages {
     flex: 1;
@@ -913,36 +825,8 @@ footer {
     }
 }
 
-/* Iframe-specific optimizations */
+/* Mobile optimizations for direct viewing */
 @media screen and (max-width: 768px) {
-    /* Remove margins when in iframe */
-    html {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        overflow-x: hidden;
-    }
-
-    body {
-        width: 100%;
-        overflow-x: hidden;
-        -webkit-text-size-adjust: 100%;
-        -ms-text-size-adjust: 100%;
-    }
-
-    /* Ensure content fits within iframe */
-    .container,
-    .class-grid-container {
-        width: 100%;
-        max-width: 100%;
-        overflow-x: hidden;
-    }
-
-    /* Prevent horizontal scrolling */
-    * {
-        max-width: 100%;
-    }
-
     /* Optimize touch targets for mobile */
     button,
     .date-card,
