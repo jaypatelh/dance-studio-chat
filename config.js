@@ -1,7 +1,7 @@
 // Configuration - placeholders will be replaced during build process
 const config = {
-    googleApiKey: 'AIzaSyC96zgVPNsijSaPAUBOgEAY2r4o-g_Ou5E',
-    openRouterApiKey: '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',
+    googleApiKey: '{{GOOGLE_API_KEY}}',
+    openRouterApiKey: '{{OPENROUTER_API_KEY}}',
     ownerPhoneNumber: '+16509954591'
 };
 
