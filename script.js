@@ -1203,7 +1203,7 @@ ${classesText}`;
                         'X-Title': 'Dance Studio Chat'
                     },
                     body: JSON.stringify({
-                        model: 'openai/gpt-4.1-nano',
+                        model: 'openai/gpt-3.5-turbo',
                         messages: [
                             { role: 'system', content: systemPrompt },
                             { role: 'user', content: userPrompt }

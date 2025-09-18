@@ -154,7 +154,7 @@ Current classes shown: ${conversationState.currentClasses.length} classes
                     'X-Title': 'Dance Studio Chat'
                 },
                 body: JSON.stringify({
-                    model: 'openai/gpt-4.1-nano',
+                    model: 'openai/gpt-3.5-turbo',
                     messages: messages,
                     temperature: 0.7,
                     max_tokens: 2048,
