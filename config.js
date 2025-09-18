@@ -1,7 +1,7 @@
-// Configuration - placeholders will be replaced during build process - Updated API key
+// Configuration - placeholders will be replaced during build process
 const config = {
-    googleApiKey: 'AIzaSyC2Ru0Ov7RaNBwXwF0nbGvEhQsurkbNFnM',
-    openRouterApiKey: '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',
+    googleApiKey: '{{GOOGLE_API_KEY}}',
+    openRouterApiKey: '{{OPENROUTER_API_KEY}}',
     ownerPhoneNumber: '+16509954591'
 };
 

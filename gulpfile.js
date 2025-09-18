@@ -3,7 +3,7 @@ const replace = require('gulp-replace');
 const rename = require('gulp-rename');
 require('dotenv').config();
 
-// Build task for production deployment
+// Production build task - replaces config.js in place (used by Netlify)
 gulp.task('build', () => {
   return gulp.src('config.js')
     .pipe(replace('{{OPENROUTER_API_KEY}}', process.env.OPENROUTER_API_KEY || ''))
@@ -11,7 +11,7 @@ gulp.task('build', () => {
     .pipe(gulp.dest('.'));
 });
 
-// Development build task
+// Development build task - creates config.dev.js for local development
 gulp.task('build:dev', gulp.parallel(
   () => {
     return gulp.src('config.js')
@@ -23,7 +23,6 @@ gulp.task('build:dev', gulp.parallel(
   () => {
     return gulp.src('index.html')
       .pipe(replace('config.js', 'config.dev.js'))
-      .pipe(replace('conversation-llm.js', 'conversation-llm.js'))
       .pipe(rename('index.dev.html'))
       .pipe(gulp.dest('.'));
   }
