@@ -139,26 +139,19 @@ header h1 {
     background: var(--chat-bg);
     padding: 0;
     margin: 0;
-    height: calc(100vh - 100px);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+    min-height: calc(100vh - 100px);
 }
 
 /* Removed iframe-specific styles - now optimized for direct mobile viewing */
 
 .chat-messages {
-    flex: 1;
     padding: 10px;
     padding-bottom: 80px;
-    overflow-y: auto;
-    overflow-x: hidden;
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
     background: var(--chat-bg);
     color: var(--text-color);
-    height: 100%;
 }
 
 .message {
@@ -598,15 +591,13 @@ footer {
     /* Chat container mobile optimization */
     .chat-container {
         border-radius: 0;
-        height: calc(100vh - 100px);
+        min-height: calc(100vh - 100px);
     }
 
     .chat-messages {
         padding: 10px;
         padding-bottom: 80px;
         gap: 0.5rem;
-        height: calc(100vh - 180px);
-        max-height: calc(100vh - 180px);
     }
 
     .message {
@@ -758,8 +749,6 @@ footer {
         padding: 8px;
         padding-bottom: 80px;
         gap: 0.5rem;
-        height: calc(100vh - 180px);
-        max-height: calc(100vh - 180px);
     }
 
     .message .content {
