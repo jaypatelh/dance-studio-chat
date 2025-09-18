@@ -158,6 +158,7 @@ header h1 {
     flex: 1;
     padding: 10px 10px 70px 10px;
     overflow-y: auto;
+    overflow-x: hidden;
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
@@ -165,6 +166,8 @@ header h1 {
     min-height: 0;
     color: var(--text-color);
     height: calc(100vh - 170px);
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
 }
 
 .message {
@@ -612,6 +615,9 @@ footer {
         padding: 10px 10px 80px 10px;
         gap: 0.5rem;
         height: calc(100vh - 180px);
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
+        overflow-anchor: none;
     }
 
     .message {
@@ -763,6 +769,9 @@ footer {
         padding: 8px 8px 80px 8px;
         gap: 0.5rem;
         height: calc(100vh - 180px);
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
+        overflow-anchor: none;
     }
 
     .message .content {

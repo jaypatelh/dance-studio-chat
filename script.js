@@ -57,7 +57,26 @@ window.onload = function() {
     
     if (userInput) {
         userInput.addEventListener('keypress', handleKeyPress);
+        
+        // Handle mobile keyboard events for better scrolling
+        userInput.addEventListener('focus', () => {
+            setTimeout(scrollToBottom, 300);
+        });
+        
+        userInput.addEventListener('blur', () => {
+            setTimeout(scrollToBottom, 300);
+        });
     }
+    
+    // Handle viewport changes on mobile (keyboard show/hide)
+    window.addEventListener('resize', () => {
+        setTimeout(scrollToBottom, 100);
+    });
+    
+    // Handle orientation changes
+    window.addEventListener('orientationchange', () => {
+        setTimeout(scrollToBottom, 500);
+    });
     
     // Add welcome message after a short delay
     setTimeout(() => {
@@ -804,7 +823,9 @@ function addUserMessage(text) {
         </div>
     `;
     chatMessages.appendChild(messageDiv);
-    scrollToBottom();
+    
+    // Ensure the new message is visible with enhanced scrolling
+    ensureMessageVisible(messageDiv);
 }
 
 // Add Calendly widget script
@@ -1006,7 +1027,9 @@ function addBotMessage(text, suggestedClasses = []) {
     `;
     
     chatMessages.appendChild(messageDiv);
-    scrollToBottom();
+    
+    // Ensure the new message is visible with enhanced scrolling
+    ensureMessageVisible(messageDiv);
     
     // Do not scroll the class grid into view
     // (Requirement: keep conversation view stable without jumping)
@@ -1030,7 +1053,7 @@ function showLoadingIndicator(message = "Processing...") {
         </div>
     `;
     chatMessages.appendChild(loadingDiv);
-    scrollToBottom();
+    ensureMessageVisible(loadingDiv);
     return id;
 }
 
@@ -1065,7 +1088,7 @@ function showTypingIndicator() {
         </div>
     `;
     chatMessages.appendChild(typingDiv);
-    scrollToBottom();
+    ensureMessageVisible(typingDiv);
     return id;
 }
 
@@ -1094,12 +1117,61 @@ function handleKeyPress(e) {
 
 // Scroll chat to bottom
 function scrollToBottom() {
+    const chatContainer = document.getElementById('chat-messages');
+    if (!chatContainer) return;
+    
+    const scrollToMax = () => {
+        // Ensure we scroll to the very bottom with extra padding
+        const maxScroll = chatContainer.scrollHeight - chatContainer.clientHeight + 50;
+        chatContainer.scrollTop = Math.max(maxScroll, chatContainer.scrollHeight);
+    };
+    
+    // Immediate scroll attempt
+    scrollToMax();
+    
+    // Multiple timeout attempts for mobile reliability
+    setTimeout(scrollToMax, 50);
+    setTimeout(scrollToMax, 150);
+    setTimeout(scrollToMax, 300);
+    
+    // Use requestAnimationFrame for smooth scrolling on mobile
+    requestAnimationFrame(() => {
+        scrollToMax();
+        
+        // Double-check after next frame
+        requestAnimationFrame(scrollToMax);
+    });
+    
+    // Final attempt after a longer delay for mobile keyboard adjustments
+    setTimeout(scrollToMax, 600);
+}
+
+// Ensure a specific message is visible (enhanced for mobile)
+function ensureMessageVisible(messageElement) {
+    if (!messageElement) return;
+    
+    const chatContainer = document.getElementById('chat-messages');
+    if (!chatContainer) return;
+    
+    // First, try standard scrolling
+    scrollToBottom();
+    
+    // Then use scrollIntoView as backup
     setTimeout(() => {
-        const chatContainer = document.getElementById('chat-messages');
-        if (chatContainer) {
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+        try {
+            messageElement.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'end',
+                inline: 'nearest'
+            });
+        } catch (e) {
+            // Fallback for older browsers
+            messageElement.scrollIntoView(false);
         }
     }, 100);
+    
+    // Final scroll to bottom to ensure input is visible
+    setTimeout(scrollToBottom, 200);
 }
 
 // Create a class card element
