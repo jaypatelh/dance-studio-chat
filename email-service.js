@@ -8,48 +8,20 @@ class EmailService {
     // Extract conversation summary from chat history
     extractConversationSummary() {
         const history = conversationState.conversationHistory || [];
-        const preferences = conversationState.userPreferences || {};
         
         let summary = {
-            age: preferences.age || 'Not specified',
-            style: preferences.style || 'Not specified',
-            dayPreference: preferences.dayPreference || 'Not specified',
-            conversationHighlights: []
+            fullConversation: ''
         };
 
-        // Extract key information from conversation
-        history.forEach(message => {
-            if (message.role === 'user') {
-                const content = message.content.toLowerCase();
-                
-                // Look for age mentions
-                const ageMatch = content.match(/(\d+)\s*(years?\s*old|yr|age)/);
-                if (ageMatch && !summary.age) {
-                    summary.age = ageMatch[1];
-                }
-                
-                // Look for style preferences
-                const styles = ['ballet', 'hip hop', 'jazz', 'contemporary', 'tap', 'lyrical', 'musical theater'];
-                styles.forEach(style => {
-                    if (content.includes(style) && !summary.style.includes(style)) {
-                        summary.style = style;
-                    }
-                });
-                
-                // Look for day preferences
-                const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-                days.forEach(day => {
-                    if (content.includes(day) && !summary.dayPreference.includes(day)) {
-                        summary.dayPreference = day;
-                    }
-                });
-                
-                // Store important user messages
-                if (message.content.length > 10) {
-                    summary.conversationHighlights.push(message.content);
-                }
-            }
-        });
+        // Format the entire conversation
+        if (history.length > 0) {
+            summary.fullConversation = history.map(message => {
+                const role = message.role === 'user' ? 'Customer' : 'Assistant';
+                return `${role}: ${message.content}`;
+            }).join('\n\n');
+        } else {
+            summary.fullConversation = 'No conversation history available';
+        }
 
         return summary;
     }
@@ -57,35 +29,17 @@ class EmailService {
     // Format email content
     formatEmailContent(bookingData, conversationSummary) {
         const emailContent = `
-New Dance Class Booking Confirmation
+New Dance Studio Consultation Call
 
-BOOKING DETAILS:
-================
-Date: ${bookingData.date}
-Time: ${bookingData.time}
-Booking Timestamp: ${bookingData.timestamp}
-
-CUSTOMER INFORMATION:
-====================
+CALL DETAILS:
+=============
 Name: ${bookingData.name}
-Email: ${bookingData.email}
 Phone: ${bookingData.phone}
+Scheduled: ${bookingData.date} at ${bookingData.time}
 
-CONVERSATION SUMMARY:
-====================
-Child's Age: ${conversationSummary.age}
-Preferred Dance Style: ${conversationSummary.style}
-Day Preference: ${conversationSummary.dayPreference}
-
-CONVERSATION HIGHLIGHTS:
-=======================
-${conversationSummary.conversationHighlights.slice(-5).map((msg, index) => `${index + 1}. ${msg}`).join('\n')}
-
-NEXT STEPS:
-===========
-- Call the customer at ${bookingData.phone} at the scheduled time
-- Discuss dance class options based on their preferences
-- Follow up with class enrollment information
+FULL CONVERSATION:
+==================
+${conversationSummary.fullConversation || 'No conversation history available'}
 
 This booking was made through the dance studio chat assistant.
         `.trim();

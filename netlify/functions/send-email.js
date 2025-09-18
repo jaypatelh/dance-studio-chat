@@ -91,35 +91,17 @@ exports.handler = async (event, context) => {
 
 function formatEmailContent(bookingData, conversationSummary) {
   return `
-New Dance Class Booking Confirmation
+New Dance Studio Consultation Call
 
-BOOKING DETAILS:
-================
-Date: ${bookingData.date}
-Time: ${bookingData.time}
-Booking Timestamp: ${bookingData.timestamp}
-
-CUSTOMER INFORMATION:
-====================
+CALL DETAILS:
+=============
 Name: ${bookingData.name}
-Email: ${bookingData.email}
 Phone: ${bookingData.phone}
+Scheduled: ${bookingData.date} at ${bookingData.time}
 
-CONVERSATION SUMMARY:
-====================
-Child's Age: ${conversationSummary.age}
-Preferred Dance Style: ${conversationSummary.style}
-Day Preference: ${conversationSummary.dayPreference}
-
-CONVERSATION HIGHLIGHTS:
-=======================
-${conversationSummary.conversationHighlights.slice(-5).map((msg, index) => `${index + 1}. ${msg}`).join('\n')}
-
-NEXT STEPS:
-===========
-- Call the customer at ${bookingData.phone} at the scheduled time
-- Discuss dance class options based on their preferences
-- Follow up with class enrollment information
+FULL CONVERSATION:
+==================
+${conversationSummary.fullConversation || 'No conversation history available'}
 
 This booking was made through the dance studio chat assistant.
   `.trim();
