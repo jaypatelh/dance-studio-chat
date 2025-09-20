@@ -16,6 +16,9 @@ const AUTO_SCROLL = false;
 let allClasses = [];
 let ownerAvailability = {};
 
+// Generate unique conversation ID
+const conversationId = 'conv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+
 // Track conversation state
 const conversationState = {
     conversationHistory: [],
@@ -42,6 +45,49 @@ function reloadClasses() {
     console.log('Forcing reload of classes...');
     loadClassesFromGoogleSheets();
     return false; // Prevent default form submission
+}
+
+// Save conversation to database
+async function saveConversation() {
+    try {
+        // Only save if there are messages in the conversation
+        if (conversationState.conversationHistory.length === 0) {
+            return;
+        }
+
+        const conversationData = {
+            conversationId: conversationId,
+            messages: conversationState.conversationHistory,
+            userPreferences: conversationState.userPreferences,
+            timestamp: new Date().toISOString()
+        };
+
+        const response = await fetch('/.netlify/functions/save-conversation', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(conversationData)
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('Conversation saved successfully:', result);
+        
+    } catch (error) {
+        console.error('Error saving conversation:', error);
+        // Don't show error to user as this is a background operation
+    }
+}
+
+// Debounced save function to avoid too many API calls
+let saveTimeout;
+function debouncedSaveConversation() {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(saveConversation, 2000); // Save after 2 seconds of inactivity
 }
 
 // Initialize the chat when the page loads
@@ -117,6 +163,9 @@ window.onload = function() {
             content: welcomeMessage
         });
         addBotMessage(welcomeMessage);
+        
+        // Save initial conversation
+        debouncedSaveConversation();
     }, 500); // Short delay to ensure classes are loaded
 };
 
@@ -151,6 +200,9 @@ async function processUserResponse(message, event) {
         role: 'user',
         content: message
     });
+    
+    // Save conversation after user message
+    debouncedSaveConversation();
     
     // Show loading indicator
     const loadingId = showLoadingIndicator("Thinking...");
@@ -246,6 +298,9 @@ async function processUserResponse(message, event) {
                 role: 'assistant',
                 content: response.message
             });
+            
+            // Save conversation after assistant response
+            debouncedSaveConversation();
         }
         
     } catch (error) {
