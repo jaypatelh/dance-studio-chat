@@ -16,7 +16,8 @@
     "dotenv": "^17.2.1",
     "gulp": "^4.0.2",
     "gulp-rename": "^2.0.0",
-    "gulp-replace": "^1.1.4"
+    "gulp-replace": "^1.1.4",
+    "@supabase/supabase-js": "^2.38.0"
   },
   "devDependencies": {
     "http-server": "^14.1.1"
