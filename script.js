@@ -55,6 +55,12 @@ async function saveConversation() {
             return;
         }
 
+        // Only save if there's at least one user message (actual user interaction)
+        const hasUserMessages = conversationState.conversationHistory.some(msg => msg.role === 'user');
+        if (!hasUserMessages) {
+            return;
+        }
+
         const conversationData = {
             conversationId: conversationId,
             messages: conversationState.conversationHistory,
@@ -164,8 +170,7 @@ window.onload = function() {
         });
         addBotMessage(welcomeMessage);
         
-        // Save initial conversation
-        debouncedSaveConversation();
+        // Don't save yet - wait for user interaction
     }, 500); // Short delay to ensure classes are loaded
 };
 

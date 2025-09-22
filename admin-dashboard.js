@@ -4,9 +4,10 @@ class ConversationDashboard {
         this.conversations = [];
         this.filteredConversations = [];
         this.currentPage = 1;
-        this.itemsPerPage = 10;
+        this.itemsPerPage = 20;
         this.searchTerm = '';
         this.sortBy = 'newest';
+        this.selectedConversation = null;
         
         this.initializeElements();
         this.attachEventListeners();
@@ -28,8 +29,7 @@ class ConversationDashboard {
             pageInfo: document.getElementById('pageInfo'),
             totalConversations: document.getElementById('totalConversations'),
             todayConversations: document.getElementById('todayConversations'),
-            totalMessages: document.getElementById('totalMessages'),
-            avgMessagesPerConv: document.getElementById('avgMessagesPerConv')
+            conversationView: document.getElementById('conversationView')
         };
     }
 
@@ -142,12 +142,76 @@ class ConversationDashboard {
         this.elements.conversationsList.innerHTML = conversationsHTML;
         this.updatePagination();
         
+        // Add click listeners to conversation items
+        this.elements.conversationsList.querySelectorAll('.conversation-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                const conversationId = item.dataset.conversationId;
+                const conversation = this.conversations.find(c => c.conversation_id === conversationId);
+                if (conversation) {
+                    this.selectConversation(conversation);
+                }
+            });
+        });
+        
         // Show the conversations list
         this.elements.conversationsList.style.display = 'block';
         this.elements.emptyState.style.display = 'none';
     }
 
     renderConversationItem(conversation) {
+        const createdAt = new Date(conversation.timestamp);
+        const messageCount = conversation.messages.length;
+        const userMessages = conversation.messages.filter(m => m.role === 'user').length;
+        const assistantMessages = conversation.messages.filter(m => m.role === 'assistant').length;
+
+        // Format preferences
+        const preferences = conversation.user_preferences || {};
+        const preferencesHTML = Object.entries(preferences)
+            .filter(([key, value]) => value !== null && value !== undefined && value !== '')
+            .map(([key, value]) => `<span class="preference-tag">${key}: ${value}</span>`)
+            .join('');
+
+        // Get first user message for preview
+        const firstUserMessage = conversation.messages.find(m => m.role === 'user');
+        const preview = firstUserMessage ? this.truncateText(firstUserMessage.content, 60) : 'No user messages';
+
+        const isSelected = this.selectedConversation && this.selectedConversation.conversation_id === conversation.conversation_id;
+
+        return `
+            <div class="conversation-item ${isSelected ? 'selected' : ''}" data-conversation-id="${conversation.conversation_id}">
+                <div class="conversation-summary">
+                    <div class="conversation-info">
+                        <div class="conversation-id">${conversation.conversation_id}</div>
+                        <div class="conversation-time">${this.formatDate(createdAt)}</div>
+                    </div>
+                    <div class="conversation-stats">
+                        <div>${messageCount} msgs</div>
+                        <div>${userMessages}u/${assistantMessages}a</div>
+                    </div>
+                </div>
+                
+                <div class="conversation-preview">${preview}</div>
+                
+                ${preferencesHTML ? `
+                    <div class="user-preferences-mini">
+                        ${preferencesHTML}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }
+
+    selectConversation(conversation) {
+        this.selectedConversation = conversation;
+        
+        // Update sidebar selection
+        this.renderConversations();
+        
+        // Show detailed conversation view
+        this.renderConversationDetail(conversation);
+    }
+
+    renderConversationDetail(conversation) {
         const createdAt = new Date(conversation.timestamp);
         const updatedAt = new Date(conversation.updated_at);
         const messageCount = conversation.messages.length;
@@ -161,44 +225,35 @@ class ConversationDashboard {
             .map(([key, value]) => `<span class="preferences-item">${key}: ${value}</span>`)
             .join('');
 
-        // Format messages preview
-        const messagesHTML = conversation.messages
-            .slice(-6) // Show last 6 messages
-            .map(message => `
-                <div class="message ${message.role}">
-                    <div class="message-role">${message.role}</div>
-                    <div class="message-content">${this.truncateText(message.content, 150)}</div>
+        // Format messages
+        const messagesHTML = conversation.messages.map(message => `
+            <div class="message-detail ${message.role}">
+                <div class="message-role-detail">
+                    <i class="fas fa-${message.role === 'user' ? 'user' : 'robot'}"></i>
+                    ${message.role}
                 </div>
-            `).join('');
+                <div class="message-content">${message.content}</div>
+            </div>
+        `).join('');
 
-        return `
-            <div class="conversation-item" data-conversation-id="${conversation.conversation_id}">
-                <div class="conversation-header">
-                    <div class="conversation-info">
-                        <div class="conversation-id">${conversation.conversation_id}</div>
-                        <div class="conversation-time">
-                            Created: ${this.formatDate(createdAt)} | 
-                            Updated: ${this.formatDate(updatedAt)}
-                        </div>
-                    </div>
-                    <div class="conversation-stats">
-                        <div>${messageCount} messages</div>
-                        <div>${userMessages} user, ${assistantMessages} assistant</div>
-                    </div>
-                </div>
-                
+        const detailHTML = `
+            <div class="conversation-detail active">
                 ${preferencesHTML ? `
-                    <div class="user-preferences">
-                        <strong>User Preferences:</strong><br>
-                        ${preferencesHTML}
+                    <div class="preferences-header">
+                        <strong>User Preferences:</strong>
+                        <div class="preferences-detail">
+                            ${preferencesHTML}
+                        </div>
                     </div>
                 ` : ''}
                 
-                <div class="messages-preview">
-                    ${messagesHTML || '<p style="color: #718096; font-style: italic;">No messages</p>'}
+                <div class="messages-container">
+                    ${messagesHTML}
                 </div>
             </div>
         `;
+
+        this.elements.conversationView.innerHTML = detailHTML;
     }
 
     updateStats() {
@@ -207,14 +262,9 @@ class ConversationDashboard {
         const todayCount = this.conversations.filter(conv => 
             new Date(conv.timestamp).toDateString() === today
         ).length;
-        
-        const totalMessages = this.conversations.reduce((sum, conv) => sum + conv.messages.length, 0);
-        const avgMessages = total > 0 ? (totalMessages / total).toFixed(1) : 0;
 
         this.elements.totalConversations.textContent = total;
         this.elements.todayConversations.textContent = todayCount;
-        this.elements.totalMessages.textContent = totalMessages;
-        this.elements.avgMessagesPerConv.textContent = avgMessages;
     }
 
     updatePagination() {
