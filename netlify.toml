@@ -12,10 +12,12 @@
   skip_processing = true
 
 # Handle Single Page Applications (SPA)
+# Only redirect routes that don't match existing files
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+  force = false
 
 # Security headers
 [[headers]]
