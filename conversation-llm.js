@@ -138,7 +138,7 @@ Current classes shown: ${conversationState.currentClasses.length} classes
                     'X-Title': 'Dance Studio Chat'
                 },
                 body: JSON.stringify({
-                    model: 'openai/gpt-oss-120b:free',
+                    model: 'x-ai/grok-4-fast:free',
                     messages: messages,
                     temperature: 0.7,
                     max_tokens: 2048,
