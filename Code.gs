@@ -7,7 +7,7 @@ function doPost(e) {
     const data = JSON.parse(e.postData.contents);
     
     // Get the active spreadsheet and the sheet
-    const ss = SpreadsheetApp.openById('YOUR_SPREADSHEET_ID'); // Replace with your Google Sheet ID
+    const ss = SpreadsheetApp.getActiveSpreadsheet(); // Replace with your Google Sheet ID
     let sheet = ss.getSheetByName(SHEET_NAME);
     
     // Create the sheet if it doesn't exist
