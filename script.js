@@ -167,7 +167,7 @@ window.onload = function() {
             "• Answering questions about our studio policies, pricing, and dress codes",
             "• Scheduling a consultation call with our studio owner",
             "",
-            "To get started, what's your child's age?"
+            "How would you like to get started? You can tell me your child's age, ask about a specific dance style, find classes on a particular day, or ask me anything else about our studio!"
         ].join('\n');
         
         // Initialize conversation history with welcome message
@@ -1336,7 +1336,7 @@ ${classesText}`;
                         'X-Title': 'Dance Studio Chat'
                     },
                     body: JSON.stringify({
-                        model: 'openai/gpt-3.5-turbo',
+                        model: 'x-ai/grok-4-fast:free',
                         messages: [
                             { role: 'system', content: systemPrompt },
                             { role: 'user', content: userPrompt }
