@@ -253,10 +253,10 @@ class BookingCalendar {
             this.container.innerHTML = `
                 <div class="booking-confirmation">
                     <div class="checkmark">✓</div>
-                    <h3>Booking Confirmed!</h3>
-                    <p>We've scheduled your call for:</p>
+                    <h3>Callback Confirmed!</h3>
+                    <p>We've scheduled your callback for:</p>
                     <p><strong>${dateStr} at ${timeDisplay}</strong></p>
-                    <p>We'll call you at the scheduled time.</p>
+                    <p>Someone will call you at the scheduled time.</p>
                 </div>
             `;
             
@@ -276,11 +276,11 @@ class BookingCalendar {
                 const timeDisplay = typeof timeStr === 'object' ? timeStr.label : timeStr;
                 
                 addBotMessage([
-                    "✅ **Booking Confirmed!**",
+                    "✅ **Callback Confirmed!**",
                     "",
-                    `Your call has been scheduled for **${formattedDate} at ${timeDisplay}**.`,
+                    `Your callback has been scheduled for **${formattedDate} at ${timeDisplay}**.`,
                     "",
-                    "Our studio owner will call you at the scheduled time to discuss dance classes for your child.",
+                    "Someone from our studio will call you at the scheduled time to help you understand your dance class options better.",
                     "",
                     "If you need to reschedule or have any questions, please contact us at (408) 204-6849."
                 ].join('\n'));
