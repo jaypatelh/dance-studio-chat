@@ -28,6 +28,7 @@ const conversationState = {
         dayPreference: null
     },
     currentClasses: [],
+    similarClasses: [],
     waitingForBookingConfirmation: false,
     waitingForBookingInfo: false,
     phone: ''
@@ -165,7 +166,7 @@ window.onload = function() {
             "I can help you with:",
             "• Finding classes based on your child's age and interests", 
             "• Answering questions about our studio policies, pricing, and dress codes",
-            "• Scheduling a consultation call with our studio owner",
+            "• Scheduling a callback to learn more about our classes",
             "",
             "How would you like to get started? You can tell me your child's age, ask about a specific dance style, find classes on a particular day, or ask me anything else about our studio!"
         ].join('\n');
@@ -188,8 +189,30 @@ async function processUserResponse(message, event) {
         conversationState.conversationHistory = [];
         conversationState.userPreferences = { age: null, style: null, dayPreference: null };
         conversationState.currentClasses = [];
+        conversationState.similarClasses = [];
         addBotMessage("Let's find more classes! What's your child's age?");
         return;
+    }
+
+    // Handle similar classes follow-up
+    if (conversationState.similarClasses.length > 0) {
+        const userMessage = message.toLowerCase();
+        if (userMessage.includes('yes') || userMessage.includes('learn more') || userMessage.includes('tell me more') || userMessage.includes('show me')) {
+            // User wants to see the similar classes
+            const messageText = "Here are the similar classes I found:";
+            addBotMessage(messageText, conversationState.similarClasses);
+            conversationState.currentClasses = conversationState.similarClasses;
+            conversationState.similarClasses = []; // Clear similar classes after showing
+            return;
+        } else if (userMessage.includes('no') || userMessage.includes('call') || userMessage.includes('owner')) {
+            // User prefers to schedule a call
+            conversationState.similarClasses = []; // Clear similar classes
+            addBotMessage("I'd be happy to help you schedule a callback so someone can call you to discuss your options!");
+            showBookingForm();
+            return;
+        }
+        // If neither yes nor no, continue with normal conversation flow but clear similar classes
+        conversationState.similarClasses = [];
     }
 
     // Handle booking confirmation
@@ -244,14 +267,22 @@ async function processUserResponse(message, event) {
                     
                     if (classes.length > 0) {
                         const matchType = classes[0]?.matchType || 'direct';
-                        // Use the LLM's explanation text which now includes compromise details for closest matches
-                        const messageText = classes[0]?.text || (matchType === 'direct' 
-                            ? "Here are some classes that match your preferences:"
-                            : "I found some similar classes that might work:");
                         
-                        addBotMessage(messageText, classes);
+                        if (matchType === 'direct') {
+                            // Show exact matches with full details
+                            const messageText = classes[0]?.text || "Here are some classes that match your preferences:";
+                            addBotMessage(messageText, classes);
+                        } else {
+                            // For similar matches, show high-level summary and ask if they want details
+                            const classNames = classes.map(cls => cls.name).join(', ');
+                            const summaryMessage = `I couldn't find exact matches for your preferences, but I found some similar classes: ${classNames}. Would you like to learn more about these options, or would you prefer to schedule a callback to learn more?`;
+                            addBotMessage(summaryMessage);
+                            
+                            // Store the similar classes for potential follow-up
+                            conversationState.similarClasses = classes;
+                        }
                     } else {
-                        addBotMessage(response.message || "I couldn't find any classes that match your preferences. Would you like to schedule a call with our studio owner to discuss options?");
+                        addBotMessage(response.message || "I couldn't find any classes that match your preferences. Would you like to schedule a callback so someone can call you to discuss options?");
                     }
                     
                     displayAllClasses();
@@ -317,7 +348,7 @@ async function processUserResponse(message, event) {
         
     } catch (error) {
         console.error('Error processing conversation:', error);
-        addBotMessage("I'm experiencing some technical difficulties. Please try again in a moment, or feel free to schedule a call with our studio owner for immediate assistance.");
+        addBotMessage("I'm experiencing some technical difficulties. Please try again in a moment, or feel free to schedule a callback for immediate assistance.");
     } finally {
         removeLoadingIndicator(loadingId);
     }
@@ -934,8 +965,8 @@ function showBookingForm() {
     form.className = 'booking-form';
     form.innerHTML = `
         <div class="booking-header">
-            <h3>Schedule a Call with Our Studio Owner</h3>
-            <p>Please provide your contact information to schedule a 10-minute consultation call.</p>
+            <h3>Schedule a Callback to Learn More</h3>
+            <p>Please provide your contact information and someone will call you at your desired time to help you understand your options better.</p>
         </div>
         <div id="contact-form">
             <div class="form-group">
@@ -1100,7 +1131,7 @@ function addBotMessage(text, suggestedClasses = []) {
                 <div class="follow-up">
                     <p>What would you like to do next?</p>
                     <div class="button-group">
-                        <button class="btn-primary schedule-call">Schedule a call with our studio owner</button>
+                        <button class="btn-primary schedule-call">Schedule a callback to learn more</button>
                     </div>
                 </div>
             `;

@@ -179,7 +179,7 @@ Current classes shown: ${conversationState.currentClasses.length} classes
     
     // All retries failed
     return {
-        message: "I'm experiencing some technical difficulties right now. Please try again in a moment, or feel free to schedule a call with our studio owner for immediate assistance.",
+        message: "I'm experiencing some technical difficulties right now. Please try again in a moment, or feel free to schedule a callback for immediate assistance.",
         action: "schedule_call",
         preferences: conversationState.userPreferences
     };
