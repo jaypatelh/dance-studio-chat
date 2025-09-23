@@ -297,7 +297,7 @@ class BookingCalendar {
     }
     
     async saveBookingToSheets(bookingData) {
-        const SCRIPT_URL = 'https://script.google.com/macros/s/1-nT82laJHcR0bFnMihScchiFbuhmu6yjoK3cdPOcpUT8Y1esk6R61e7K/exec';
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwktuMbMIu0BGK7wqu_f_otx5Ym8lSScCdohCmtZqO8fUdyH0bRRDZazumaV5y6ticRiQ/exec';
         
         try {
             console.log('Sending booking data:', bookingData);
