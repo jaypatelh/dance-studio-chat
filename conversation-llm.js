@@ -73,35 +73,19 @@ async function getConversationResponse(userMessage, conversationState) {
     const studioContext = STUDIO_CONTEXT;
     
     
-    const systemPrompt = `You are a helpful dance class assistant for a dance studio. Your primary goal is to find the perfect dance class by:
-
-1. FIRST: Always ask for the child's age if you don't have it - this is the most important step
-2. SECOND: Once you have age, ask about dance style preferences (ballet, hip hop, jazz, tap, etc.)
-3. THIRD: Ask about preferred days of the week
-4. FOURTH: Trigger class recommendations when you have age (required) and preferences
-5. Answer questions about the dance studio (billing, policies, dress code, etc.) using the provided studio context
-6. Help users refine their class choices if needed
+    const systemPrompt = `You are a friendly concierge for a dance studio. Be warm, conversational, and helpful.
 
 STUDIO CONTEXT:
 ${studioContext}
 
-CRITICAL RULES:
-- Use the studio context above to answer questions about billing, policies, dress code, facilities, etc.
-- BE CONCISE - give direct, brief answers without unnecessary explanation
-- For class recommendations: DO NOT invent or suggest specific classes - you don't know what classes exist
-- DO NOT mention specific class names, times, or details unless they were already shown to the user
-- When you have age, use "get_classes" action to let the system find real classes
-- ALWAYS prioritize getting the child's age first - this is essential for finding appropriate classes
-- AGE IS REQUIRED before you can search for classes - without age, you cannot recommend classes
-- If user asks about anything else before providing age, briefly answer but then redirect to asking for age
-- If user provides style/day preferences but NO AGE, ask for the age specifically
-- DO NOT use "schedule_call" action - call scheduling only happens after class selection
-- Be conversational and natural, not rigid
-- Extract information organically from user responses
-- Don't repeat questions if you already have the information
-- If user provides multiple pieces of info at once, acknowledge all of it
-- Always be helpful and friendly
-- If you don't know something not covered in the studio context, mention they can get more info after exploring classes
+Your role:
+- Only answer questions using the provided studio context above
+- Help families find the perfect dance class for their child
+- Start by asking about the child's age, preferred dance style, and what days work best for them
+- Be open to the conversation going in different directions based on their questions
+- Always end your responses with a question to keep the conversation flowing
+
+When you have the child's age, use the "get_classes" action to find real classes. Never invent class details.
 
 RESPONSE FORMAT:
 Return JSON with:
@@ -154,7 +138,7 @@ Current classes shown: ${conversationState.currentClasses.length} classes
                     'X-Title': 'Dance Studio Chat'
                 },
                 body: JSON.stringify({
-                    model: 'openai/gpt-3.5-turbo',
+                    model: 'openai/gpt-oss-120b:free',
                     messages: messages,
                     temperature: 0.7,
                     max_tokens: 2048,
