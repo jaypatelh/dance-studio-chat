@@ -1,8 +1,7 @@
 // Configuration
 const GROQ_API_KEY = window.appConfig?.groqApiKey || '';
 const GOOGLE_API_KEY = window.appConfig?.googleApiKey || '';
-// Google Sheet ID from the URL: https://docs.google.com/spreadsheets/d/1GFYV6qiAy8fUk8nDbbnHiiOL_jzADSWgZZuzVJ55JC0/edit
-const GOOGLE_SHEET_ID = '1GFYV6qiAy8fUk8nDbbnHiiOL_jzADSWgZZuzVJ55JC0';
+const GOOGLE_SHEET_ID = '1oiD4w17jVWc9_4NDAIFZpfWa4Unli5wovxxVUqzyn88';
 
 // DOM Elements
 const userInput = document.getElementById('user-input');
