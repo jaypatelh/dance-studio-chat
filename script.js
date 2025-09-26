@@ -892,6 +892,11 @@ function showBookingForm() {
     
     chatMessages.appendChild(form);
     
+    // Scroll to show the booking form
+    if (chatMessages) {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
     // Add event listener for continue button
     const continueBtn = form.querySelector('#continue-to-calendar');
     continueBtn.addEventListener('click', () => {
