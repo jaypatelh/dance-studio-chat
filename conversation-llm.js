@@ -26,6 +26,9 @@ function formatClassesForPrompt(classes) {
             formatted += `\n${day}:\n`;
             classesByDay[day].forEach(cls => {
                 formatted += `- ${cls.name} (Ages ${cls.ageRange || 'All ages'}) at ${cls.time || 'TBD'}`;
+                if (cls.date && cls.date.trim()) {
+                    formatted += ` on ${cls.date}`;
+                }
                 if (cls.instructor && cls.instructor !== 'TBD') {
                     formatted += ` with ${cls.instructor}`;
                 }
@@ -46,6 +49,9 @@ function formatClassesForPrompt(classes) {
             formatted += `\n${day}:\n`;
             classesByDay[day].forEach(cls => {
                 formatted += `- ${cls.name} (Ages ${cls.ageRange || 'All ages'}) at ${cls.time || 'TBD'}`;
+                if (cls.date && cls.date.trim()) {
+                    formatted += ` on ${cls.date}`;
+                }
                 if (cls.instructor && cls.instructor !== 'TBD') {
                     formatted += ` with ${cls.instructor}`;
                 }

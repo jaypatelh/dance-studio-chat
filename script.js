@@ -351,6 +351,7 @@ async function fetchAndParseSheet(sheetId, sheetName, apiKey) {
                 time: (row[3] || '').toString().trim(),
                 ageRange: (row[4] || '').toString().trim(),
                 instructor: (row[5] || '').toString().trim(),
+                date: (row[6] || '').toString().trim(), // Column G for master classes
                 day: sheetName
             };
             
