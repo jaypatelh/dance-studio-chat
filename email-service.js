@@ -5,70 +5,72 @@ class EmailService {
         console.log('EmailService initialized - using Gmail SMTP only');
     }
 
-    // Extract conversation summary from chat history
-    extractConversationSummary() {
+    // Generate conversation summary using LLM
+    async generateConversationSummary() {
         const history = conversationState.conversationHistory || [];
         const preferences = conversationState.userPreferences || {};
         
-        let summary = {
-            customerSummary: ''
-        };
+        if (history.length === 0) {
+            return {
+                customerSummary: 'Customer inquired about dance classes through the chat assistant.'
+            };
+        }
 
-        // Create a prose summary of what the customer was looking for
-        let summaryParts = [];
-        
-        // Get child's age
-        if (preferences.age) {
-            summaryParts.push(`The customer is looking for dance classes for their ${preferences.age}-year-old child`);
-        } else {
-            summaryParts.push('The customer is inquiring about dance classes for their child');
-        }
-        
-        // Get style preferences
-        if (preferences.style && preferences.style !== 'Not specified') {
-            summaryParts.push(`They expressed interest in ${preferences.style} classes`);
-        }
-        
-        // Get day preferences
-        if (preferences.dayPreference && preferences.dayPreference !== 'Not specified') {
-            summaryParts.push(`and prefer classes on ${preferences.dayPreference}s`);
-        }
-        
-        // Look through conversation for additional context
-        const userMessages = history.filter(msg => msg.role === 'user');
-        let additionalContext = [];
-        
-        userMessages.forEach(message => {
-            const content = message.content.toLowerCase();
-            
-            // Look for experience level mentions
-            if (content.includes('beginner') || content.includes('never') || content.includes('first time')) {
-                additionalContext.push('beginner level');
+        try {
+            // Format conversation for LLM
+            const conversationText = history.map(msg => 
+                `${msg.role === 'user' ? 'Customer' : 'Assistant'}: ${msg.content}`
+            ).join('\n');
+
+            const summaryPrompt = `Please summarize this conversation between a customer and a dance studio chat assistant in 2-3 sentences. Focus on what the customer is looking for, their preferences, and any specific needs mentioned.
+
+Conversation:
+${conversationText}
+
+User Preferences Captured:
+${JSON.stringify(preferences, null, 2)}
+
+Provide a concise summary that would be helpful for a dance studio staff member who will be calling this customer:`;
+
+            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${window.appConfig.openRouterApiKey}`,
+                    'Content-Type': 'application/json',
+                    'HTTP-Referer': window.location.origin,
+                    'X-Title': 'Dance Studio Chat'
+                },
+                body: JSON.stringify({
+                    model: 'x-ai/grok-4-fast:free',
+                    messages: [
+                        {
+                            role: 'user',
+                            content: summaryPrompt
+                        }
+                    ],
+                    temperature: 0.3,
+                    max_tokens: 200
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`LLM API error: ${response.status}`);
             }
-            if (content.includes('experienced') || content.includes('years') || content.includes('advanced')) {
-                additionalContext.push('has some experience');
-            }
-            
-            // Look for specific interests or concerns
-            if (content.includes('competitive') || content.includes('competition')) {
-                additionalContext.push('interested in competitive dance');
-            }
-            if (content.includes('fun') || content.includes('recreational')) {
-                additionalContext.push('looking for recreational classes');
-            }
-        });
-        
-        // Combine the summary
-        let fullSummary = summaryParts.join('. ');
-        if (additionalContext.length > 0) {
-            fullSummary += `. Additional notes: ${additionalContext.join(', ')}.`;
-        } else {
-            fullSummary += '.';
+
+            const data = await response.json();
+            const summary = data.choices[0]?.message?.content?.trim() || 'Customer inquired about dance classes through the chat assistant.';
+
+            return {
+                customerSummary: summary
+            };
+
+        } catch (error) {
+            console.error('Error generating conversation summary:', error);
+            // Fallback to simple summary
+            return {
+                customerSummary: 'Customer inquired about dance classes through the chat assistant.'
+            };
         }
-        
-        summary.customerSummary = fullSummary;
-        
-        return summary;
     }
 
     // Format email content
@@ -95,7 +97,7 @@ This consultation was scheduled through the dance studio chat assistant.
     // Send email notification using Gmail SMTP only
     async sendBookingNotification(bookingData) {
         try {
-            const conversationSummary = this.extractConversationSummary();
+            const conversationSummary = await this.generateConversationSummary();
             
             console.log('=== EMAIL SERVICE DEBUG ===');
             console.log('Sending booking notification via Gmail SMTP...');
