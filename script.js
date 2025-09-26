@@ -357,6 +357,11 @@ async function fetchAndParseSheet(sheetId, sheetName, apiKey) {
             
             console.log('Processed class data:', classData);
             
+            // Debug master classes specifically
+            if (sheetName === 'Master Classes' && classData.date) {
+                console.log(`Master class "${classData.name}" has date: "${classData.date}"`);
+            }
+            
             // Clean up the time format if needed
             if (classData.time) {
                 classData.time = classData.time.split(' ').pop();
@@ -559,7 +564,7 @@ async function loadClassesFromGoogleSheets() {
         // Fetch data from each sheet in parallel
         const sheetPromises = daySheets.map(async (sheet) => {
             const response = await fetch(
-                `https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEET_ID}/values/${encodeURIComponent(sheet.title)}!A:F?key=${GOOGLE_API_KEY}`
+                `https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEET_ID}/values/${encodeURIComponent(sheet.title)}!A:G?key=${GOOGLE_API_KEY}`
             );
             
             if (!response.ok) {
@@ -572,21 +577,29 @@ async function loadClassesFromGoogleSheets() {
             
             // Skip the header row and process each class row
             return values.slice(1).map(row => {
-                // Ensure we have at least 6 columns (A-F) as per the sheet structure
-                const [className, description, performance, time, ages, instructor] = row.map(cell => cell ? cell.trim() : '');
+                // Ensure we have at least 7 columns (A-G) to include date
+                const [className, description, performance, time, ages, instructor, date] = row.map(cell => cell ? cell.trim() : '');
                 
                 // Only include classes with a name
                 if (!className) return null;
                 
-                return {
+                const classData = {
                     day: sheet.title,
                     name: className,
                     description: description || 'No description available',
                     performance: performance || '',
                     time: time || 'TBD',
                     ageRange: ages || 'All ages',
-                    instructor: instructor || 'TBD'
+                    instructor: instructor || 'TBD',
+                    date: date || '' // Column G for master classes
                 };
+                
+                // Debug master classes specifically
+                if (sheet.title === 'Master Classes' && date) {
+                    console.log(`Master class "${className}" has date: "${date}"`);
+                }
+                
+                return classData;
             }).filter(Boolean); // Remove any null entries
         });
         
