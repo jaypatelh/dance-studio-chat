@@ -65,8 +65,8 @@ This booking was made through the dance studio chat assistant.
         // Email options
         const mailOptions = {
             from: process.env.EMAIL_USER,
-            to: process.env.ADMIN_EMAIL || 'admin@tdcoflosgatos.com',
-            bcc: process.env.BCC_EMAIL || 'dancenear@gmail.com',
+            to: process.env.ADMIN_EMAIL,
+            bcc: process.env.BCC_EMAIL,
             subject: `New Dance Class Booking - ${bookingData.name} (${bookingData.date} at ${bookingData.time})`,
             text: emailContent,
             html: emailContent.replace(/\n/g, '<br>')
