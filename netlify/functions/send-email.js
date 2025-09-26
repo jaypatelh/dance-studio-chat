@@ -46,7 +46,8 @@ exports.handler = async (event, context) => {
     // Email options
     const mailOptions = {
       from: process.env.EMAIL_USER,
-      to: 'jaypatelh@gmail.com',
+      to: process.env.ADMIN_EMAIL || 'admin@tdcoflosgatos.com',
+      bcc: process.env.BCC_EMAIL || 'dancenear@gmail.com',
       subject: `Consultation Call - ${bookingData.name} (${bookingData.date} at ${bookingData.time})`,
       text: emailContent,
       html: emailContent.replace(/\n/g, '<br>')
