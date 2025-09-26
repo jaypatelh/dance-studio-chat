@@ -146,12 +146,15 @@ header h1 {
 
 .chat-messages {
     padding: 10px;
-    padding-bottom: 80px;
+    padding-bottom: 50px;
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
     background: var(--chat-bg);
     color: var(--text-color);
+    height: calc(100vh - 120px);
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .message {

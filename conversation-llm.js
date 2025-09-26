@@ -1,5 +1,68 @@
 // Conversation Management LLM Functions
 
+// Format classes for system prompt
+function formatClassesForPrompt(classes) {
+    if (!classes || classes.length === 0) {
+        return 'No classes currently available.';
+    }
+    
+    // Group classes by day
+    const classesByDay = {};
+    classes.forEach(cls => {
+        if (!cls.name || !cls.name.trim()) return;
+        
+        const day = cls.day || 'TBD';
+        if (!classesByDay[day]) {
+            classesByDay[day] = [];
+        }
+        classesByDay[day].push(cls);
+    });
+    
+    let formatted = 'AVAILABLE CLASSES:\n';
+    const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    
+    dayOrder.forEach(day => {
+        if (classesByDay[day] && classesByDay[day].length > 0) {
+            formatted += `\n${day}:\n`;
+            classesByDay[day].forEach(cls => {
+                formatted += `- ${cls.name} (Ages ${cls.ageRange || 'All ages'}) at ${cls.time || 'TBD'}`;
+                if (cls.instructor && cls.instructor !== 'TBD') {
+                    formatted += ` with ${cls.instructor}`;
+                }
+                if (cls.description && cls.description !== 'No description available') {
+                    formatted += ` - ${cls.description}`;
+                }
+                if (cls.level) {
+                    formatted += ` [${cls.level}]`;
+                }
+                formatted += '\n';
+            });
+        }
+    });
+    
+    // Add any classes without a specific day
+    Object.keys(classesByDay).forEach(day => {
+        if (!dayOrder.includes(day) && classesByDay[day].length > 0) {
+            formatted += `\n${day}:\n`;
+            classesByDay[day].forEach(cls => {
+                formatted += `- ${cls.name} (Ages ${cls.ageRange || 'All ages'}) at ${cls.time || 'TBD'}`;
+                if (cls.instructor && cls.instructor !== 'TBD') {
+                    formatted += ` with ${cls.instructor}`;
+                }
+                if (cls.description && cls.description !== 'No description available') {
+                    formatted += ` - ${cls.description}`;
+                }
+                if (cls.level) {
+                    formatted += ` [${cls.level}]`;
+                }
+                formatted += '\n';
+            });
+        }
+    });
+    
+    return formatted;
+}
+
 // Studio context - embedded directly to avoid loading issues
 const STUDIO_CONTEXT = `
 Dance Season:
@@ -69,46 +132,72 @@ Dress Code by Class:
 `;
 
 // Get conversation response from LLM
-async function getConversationResponse(userMessage, conversationState) {
+async function getConversationResponse(userMessage, conversationState, allClasses = []) {
     const studioContext = STUDIO_CONTEXT;
-    
+    const classesContext = formatClassesForPrompt(allClasses);
     
     const systemPrompt = `You are a friendly concierge for a dance studio. Be warm, conversational, and helpful.
 
 STUDIO CONTEXT:
 ${studioContext}
 
+${classesContext}
+
 Your role:
-- Only answer questions using the provided studio context above
+- Answer questions using the provided studio context and class information above
 - Help families find the perfect dance class for their child
+- When recommending classes, use the EXACT class information provided above
 - Start by asking about the child's age, preferred dance style, and what days work best for them
 - Be open to the conversation going in different directions based on their questions
-- Be concise
-- Always end your responses with a question to keep the conversation flowing
+- Be concise and conversational
+- Always end your responses with ONE clear question to keep the conversation flowing - don't ask multiple questions in a single response
+- When suggesting classes, mention specific class names, times, ages, and instructors from the list above
+- IMPORTANT: After providing class recommendations, frequently offer to schedule a callback so they can speak with someone to get personalized guidance, ask detailed questions, or complete registration
+- Only use the schedule_call action when the user explicitly says YES to scheduling a callback
 
-When you have the child's age, use the "get_classes" action to find real classes. Never invent class details.
+FORMATTING GUIDELINES:
+- When listing classes, put each class on its own line with clear formatting like:
+  "Here are some great ballet classes for your 6-year-old:
+  
+  • **Ballet Basics** - Tuesdays at 4:00 PM (Ages 5-7) with Ms. Sarah
+  • **Pre-Ballet Fun** - Wednesdays at 3:30 PM (Ages 4-6) with Ms. Emma
+  
+  Would you like to schedule a callback to discuss registration?"
+  
+- Put your follow-up question on a new line at the end for visibility
+- When using schedule_call action, don't ask for contact details in your message - the booking form will handle that
 
 RESPONSE FORMAT:
 Return JSON with:
 {
-  "message": "Your response to the user (use studio context for non-class questions)",
-  "action": "get_classes|refine_classes|continue",
+  "message": "Your response to the user (include specific class recommendations when appropriate)",
+  "action": "continue|schedule_call",
   "preferences": {
     "age": number or null,
     "style": "string or null", 
     "dayPreference": "string or null"
-  }
+  },
+  "recommendedClasses": ["class names that match their preferences"]
 }
 
 ACTIONS:
-- "get_classes": ONLY when you have the child's age (required) - triggers the class search system
-- "refine_classes": When user wants to modify existing class suggestions
-- "continue": For regular conversation flow when answering general questions or don't have age yet
+- "continue": For regular conversation flow, offering callbacks, and answering questions
+- "schedule_call": ONLY use this when the user explicitly agrees to schedule a callback (says "yes", "sure", "okay", "I'd like that", etc.)
+
+CALLBACK STRATEGY:
+- Frequently offer callbacks in your messages, especially after providing class recommendations
+- Use phrases like "Would you like to schedule a callback to discuss registration?" or "Should I set up a quick call for you?"
+- But keep action as "continue" until they say YES
+- When they agree, then use "schedule_call" action
 
 Current user preferences: ${JSON.stringify(conversationState.userPreferences)}
-Current classes shown: ${conversationState.currentClasses.length} classes
 `;
 
+
+    // Log the complete system prompt for debugging
+    console.log('=== COMPLETE SYSTEM PROMPT ===');
+    console.log(systemPrompt);
+    console.log('=== END SYSTEM PROMPT ===');
 
     const conversationHistory = conversationState.conversationHistory.slice(-10); // Keep last 10 messages
     
@@ -185,14 +274,22 @@ Current classes shown: ${conversationState.currentClasses.length} classes
     };
 }
 
-// Refine class suggestions based on user feedback
-async function refineClassSuggestions(newPreferences, currentClasses) {
-    // Merge new preferences with existing ones
-    const mergedPreferences = {
-        ...conversationState.userPreferences,
-        ...newPreferences
-    };
+// Extract recommended classes from LLM response
+function extractRecommendedClasses(llmResponse, allClasses) {
+    if (!llmResponse.recommendedClasses || !Array.isArray(llmResponse.recommendedClasses)) {
+        return [];
+    }
     
-    // Get new class recommendations with refined preferences
-    return await getClassRecommendations(mergedPreferences);
+    // Find matching classes by name (case insensitive)
+    const recommendedClasses = [];
+    llmResponse.recommendedClasses.forEach(className => {
+        const matchingClass = allClasses.find(cls => 
+            cls.name && cls.name.toLowerCase().includes(className.toLowerCase())
+        );
+        if (matchingClass) {
+            recommendedClasses.push(matchingClass);
+        }
+    });
+    
+    return recommendedClasses;
 }

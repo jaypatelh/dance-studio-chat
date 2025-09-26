@@ -241,97 +241,37 @@ async function processUserResponse(message, event) {
     // Show loading indicator
     const loadingId = showLoadingIndicator("Thinking...");
     
+    // Scroll to show the loading indicator immediately
+    scrollToBottom();
+    
     try {
-        // Get response from conversation management LLM
-        const response = await getConversationResponse(message, conversationState);
+        // Get response from conversation management LLM with all classes included
+        const response = await getConversationResponse(message, conversationState, allClasses);
+        
+        removeLoadingIndicator(loadingId);
+        
+        // Update user preferences if provided
+        if (response.preferences) {
+            conversationState.userPreferences = response.preferences;
+        }
         
         // Handle the response based on its action
-        if (response.action === 'get_classes') {
-            // Only call class recommendation LLM if we have age and preferences have changed
-            const hasAge = response.preferences && response.preferences.age;
-            const preferencesChanged = !conversationState.userPreferences || 
-                JSON.stringify(conversationState.userPreferences) !== JSON.stringify(response.preferences);
-            
-            if (hasAge && preferencesChanged) {
-                // Update loading message for class search
-                updateLoadingMessage(loadingId, "Searching for classes...");
-                
-                try {
-                    // Extract preferences and get class recommendations
-                    const classes = await getClassRecommendations(response.preferences);
-                    conversationState.currentClasses = classes;
-                    conversationState.userPreferences = response.preferences;
-                    
-                    removeLoadingIndicator(loadingId);
-                    
-                    if (classes.length > 0) {
-                        const matchType = classes[0]?.matchType || 'direct';
-                        
-                        if (matchType === 'direct') {
-                            // Show exact matches with full details
-                            const messageText = classes[0]?.text || "Here are some classes that match your preferences:";
-                            addBotMessage(messageText, classes);
-                        } else {
-                            // For similar matches, show high-level summary and ask if they want details
-                            const classNames = classes.map(cls => cls.name).join(', ');
-                            const summaryMessage = `I couldn't find exact matches for your preferences, but I found some similar classes: ${classNames}. Would you like to learn more about these options, or would you prefer to schedule a callback to learn more?`;
-                            addBotMessage(summaryMessage);
-                            
-                            // Store the similar classes for potential follow-up
-                            conversationState.similarClasses = classes;
-                        }
-                    } else {
-                        addBotMessage(response.message || "I couldn't find any classes that match your preferences. Would you like to schedule a callback so someone can call you to discuss options?");
-                    }
-                    
-                    displayAllClasses();
-                } catch (error) {
-                    console.error('Error getting class recommendations:', error);
-                    removeLoadingIndicator(loadingId);
-                    addBotMessage("I'm having trouble finding classes right now. Let me help you with general information instead.");
-                }
-            } else if (!hasAge) {
-                // No age provided, just show the conversation response
-                addBotMessage(response.message);
-            } else {
-                // Preferences haven't changed, show existing classes
-                addBotMessage(response.message);
-                if (conversationState.currentClasses.length > 0) {
-                    displayAllClasses();
-                }
-            }
-        } else if (response.action === 'refine_classes') {
-            // Update loading for class refinement
-            updateLoadingMessage(loadingId, "Finding updated classes...");
-            
-            try {
-                // Refine existing class suggestions
-                const refinedClasses = await refineClassSuggestions(response.preferences, conversationState.currentClasses);
-                conversationState.currentClasses = refinedClasses;
-                conversationState.userPreferences = response.preferences;
-                
-                removeLoadingIndicator(loadingId);
-                
-                if (refinedClasses.length > 0) {
-                    // Use the LLM's explanation text for refined classes too
-                    const messageText = refinedClasses[0]?.text || response.message || "Here are the updated class suggestions:";
-                    addBotMessage(messageText, refinedClasses);
-                    displayAllClasses();
-                } else {
-                    addBotMessage(response.message || "I couldn't find classes matching those specific requirements. Would you like to schedule a call to discuss other options?");
-                }
-            } catch (error) {
-                console.error('Error refining classes:', error);
-                removeLoadingIndicator(loadingId);
-                addBotMessage("I'm having trouble updating the class suggestions. Here are the current recommendations:");
-                displayClasses(conversationState.currentClasses);
-            }
-        } else if (response.action === 'schedule_call') {
-            // Suggest scheduling a call
+        if (response.action === 'schedule_call') {
+            // User wants to schedule a callback
             addBotMessage(response.message);
+            showBookingForm();
         } else {
-            // Regular conversation response
-            addBotMessage(response.message || 'Sorry, I encountered an error. Please try again.');
+            // Extract recommended classes if any
+            if (response.recommendedClasses && response.recommendedClasses.length > 0) {
+                const recommendedClasses = extractRecommendedClasses(response, allClasses);
+                conversationState.currentClasses = recommendedClasses;
+                
+                // Show the message with recommended classes
+                addBotMessage(response.message, recommendedClasses);
+            } else {
+                // Regular conversation response without specific class recommendations
+                addBotMessage(response.message || 'Sorry, I encountered an error. Please try again.');
+            }
         }
         
         // Add assistant response to conversation history (only if message exists)
@@ -353,82 +293,6 @@ async function processUserResponse(message, event) {
     }
 }
 
-// Get class recommendations from LLM based on user preferences
-async function getClassRecommendations(prefs) {
-    try {
-            
-        // Prepare class data with unique identifiers, filtering out empty classes
-        const classData = allClasses
-            .filter(cls => cls.name && cls.name.trim()) // Only include classes with valid names
-            .map((cls, index) => ({
-                id: `class_${index}`, // Unique identifier
-                name: cls.name.trim(),
-                description: cls.description || 'No description available',
-                ageRange: cls.ageRange || 'All ages',
-                day: cls.day || 'Not specified',
-                time: cls.time || 'Time TBD',
-                instructor: cls.instructor || 'TBD',
-                performance: cls.performance || '',
-                level: cls.level || ''
-            }));
-        
-            
-        // Call the LLM with the preferences and class data
-        const response = await callGroqAPI(JSON.stringify({
-            task: 'recommend_classes',
-            preferences: prefs,
-            availableClasses: classData
-        }));
-
-        
-        // Handle the LLM response
-        if (response && response.classes && Array.isArray(response.classes)) {
-                
-            // Map class IDs back to full class objects using the same mapping as sent to LLM
-            const classDataMap = {};
-            classData.forEach(cls => {
-                classDataMap[cls.id] = cls;
-            });
-            
-                
-            // Map back to original allClasses objects using direct ID lookup
-            const recommendedClasses = response.classes
-                .map(classId => {
-                    const classFromLLM = classDataMap[classId];
-                    if (!classFromLLM) {
-                        console.warn(`Class ID ${classId} not found in map`);
-                        return null;
-                    }
-                    
-                    
-                    const classIndex = parseInt(classId.replace('class_', ''));
-                    const originalClass = allClasses[classIndex];
-                    
-                    if (!originalClass) {
-                        console.warn(`Original class at index ${classIndex} not found`);
-                        return classFromLLM; // Fallback to LLM data
-                    }
-                    return originalClass;
-                })
-                .filter(Boolean); // Remove any undefined entries
-                
-                
-            // Add match type to the classes for UI display
-            const classesWithMatchType = recommendedClasses.map(cls => ({
-                ...cls,
-                matchType: response.matchType || 'direct'
-            }));
-            
-            return classesWithMatchType;
-        }
-        
-        console.warn('No valid classes found in LLM response');
-        return [];
-    } catch (error) {
-        console.error('Error getting recommendations:', error);
-        return [];
-    }
-}
 
 // Extract sheet ID from URL
 function extractSheetId(url) {
@@ -513,7 +377,7 @@ async function fetchAndParseSheet(sheetId, sheetName, apiKey) {
 async function fetchAllWeekData(sheetId, apiKey) {
     try {
         // Try to fetch from Google Sheets first
-        const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Master Classes'];
         let allClasses = [];
         
         // Fetch data for each day
@@ -677,10 +541,19 @@ async function loadClassesFromGoogleSheets() {
         }
         
         const { sheets } = await sheetsResponse.json();
+        console.log('All available sheets:', sheets.map(s => s.properties.title));
+        
         const daySheets = sheets
             .map(sheet => sheet.properties)
-            .filter(sheet => ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-                .includes(sheet.title));
+            .filter(sheet => {
+                // Include Monday through Saturday and Master Classes only
+                const title = sheet.title;
+                const targetSheets = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Master Classes'];
+                
+                return targetSheets.includes(title);
+            });
+            
+        console.log('Sheets being loaded for classes:', daySheets.map(s => s.title));
         
         // Fetch data from each sheet in parallel
         const sheetPromises = daySheets.map(async (sheet) => {
@@ -947,7 +820,25 @@ function addUserMessage(text) {
         </div>
     `;
     chatMessages.appendChild(messageDiv);
-    scrollToBottom();
+    
+    // Scroll immediately with debug
+    console.log('Scrolling user message...');
+    if (chatMessages) {
+        console.log('chatMessages found, scrollHeight:', chatMessages.scrollHeight);
+        console.log('clientHeight:', chatMessages.clientHeight);
+        console.log('Before scroll - scrollTop:', chatMessages.scrollTop);
+        
+        // Scroll to absolute bottom
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        console.log('After scrollTop assignment:', chatMessages.scrollTop);
+        
+        chatMessages.scrollTo(0, chatMessages.scrollHeight);
+        console.log('After scrollTo:', chatMessages.scrollTop);
+        
+        // Don't use scrollIntoView as it interferes with the scroll position
+    } else {
+        console.log('chatMessages not found!');
+    }
 }
 
 // Add Calendly widget script
@@ -1077,6 +968,14 @@ document.addEventListener('click', (e) => {
 });
 
 
+// Simple markdown renderer for bot messages
+function renderMarkdown(text) {
+    return text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
+        .replace(/\*(.*?)\*/g, '<em>$1</em>') // Italic
+        .replace(/\n/g, '<br>'); // Line breaks
+}
+
 // Add a message from the bot to the chat
 function addBotMessage(text, suggestedClasses = []) {
     const messageDiv = document.createElement('div');
@@ -1088,61 +987,15 @@ function addBotMessage(text, suggestedClasses = []) {
         text = 'Sorry, I encountered an error. Please try again.';
     }
     
-    // Convert line breaks to HTML
-    const formattedText = text.replace(/\n/g, '<br>');
+    // Convert markdown and line breaks to HTML
+    const formattedText = renderMarkdown(text);
     
     let content = `<div class="content">
         <div class="message-text">${formattedText}</div>
     `;
     
-    // Only show suggested classes in the chat if there are any
-    if (suggestedClasses && suggestedClasses.length > 0) {
-        const showCount = Math.min(suggestedClasses.length, 3);
-        const remainingCount = suggestedClasses.length - showCount;
-        
-        content += '<div class="class-suggestions">';
-        content += `<p class="suggestion-note">Here are ${showCount} classes that might interest you:</p>`;
-        
-        // Show max 3 classes with full details
-        suggestedClasses.slice(0, 3).forEach((cls, index) => {
-            if (!cls) return;
-            
-            const isClosestMatch = cls.matchType === 'closest';
-            const matchBadge = isClosestMatch ? '<span class="match-badge closest">Similar Match</span>' : '<span class="match-badge direct">Perfect Match</span>';
-            
-            content += `
-                <div class="class-card ${isClosestMatch ? 'closest-match' : 'direct-match'}">
-                    <div class="class-header">
-                        <h4>${cls.name || 'Unnamed Class'}</h4>
-                        ${matchBadge}
-                    </div>
-                    <p><i class="fas fa-user-friends"></i> ${cls.ageRange || 'All Ages'}</p>
-                    ${cls.day ? `<p><i class="far fa-calendar-alt"></i> ${cls.day} at ${cls.time || 'TBD'}</p>` : ''}
-                    <p><i class="fas fa-signal"></i> ${cls.level || 'All Levels'}</p>
-                    ${cls.description ? `<div class="class-description">${cls.description}</div>` : ''}
-                </div>
-            `;
-        });
-        
-        // Add follow-up options
-        if (suggestedClasses.length > 0) {
-            content += `
-                <div class="follow-up">
-                    <p>What would you like to do next?</p>
-                    <div class="button-group">
-                        <button class="btn-primary schedule-call">Schedule a callback to learn more</button>
-                    </div>
-                </div>
-            `;
-        }
-        
-        content += `${suggestedClasses.length > 3 ? 
-                        `<p class="more-classes">There are ${remainingCount} more classes available. You can view them in the list below or ask me about specific criteria.</p>` 
-                        : ''
-                    }`;
-        
-        content += '</div>'; // Close class-suggestions
-    }
+    // Classes are now displayed inline with the message text using markdown formatting
+    // No separate class cards needed
     
     content += '</div>'; // Close content div
     
@@ -1154,7 +1007,23 @@ function addBotMessage(text, suggestedClasses = []) {
     `;
     
     chatMessages.appendChild(messageDiv);
-    scrollToBottom();
+    
+    // Scroll immediately with debug
+    console.log('Scrolling bot message...');
+    if (chatMessages) {
+        console.log('chatMessages found, scrollHeight:', chatMessages.scrollHeight);
+        console.log('clientHeight:', chatMessages.clientHeight);
+        console.log('Before scroll - scrollTop:', chatMessages.scrollTop);
+        
+        // Scroll to absolute bottom
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        console.log('After scrollTop assignment:', chatMessages.scrollTop);
+        
+        chatMessages.scrollTo(0, chatMessages.scrollHeight);
+        console.log('After scrollTo:', chatMessages.scrollTop);
+    } else {
+        console.log('chatMessages not found!');
+    }
     
     // Do not scroll the class grid into view
     // (Requirement: keep conversation view stable without jumping)
@@ -1178,6 +1047,9 @@ function showLoadingIndicator(message = "Processing...") {
         </div>
     `;
     chatMessages.appendChild(loadingDiv);
+    
+    // Scroll immediately after adding loading indicator
+    console.log('Loading indicator added, scrolling...');
     scrollToBottom();
     return id;
 }
@@ -1242,9 +1114,22 @@ function handleKeyPress(e) {
 
 // Scroll chat to bottom
 function scrollToBottom() {
-    const chatContainer = document.getElementById('chat-messages');
-    if (chatContainer) {
-        chatContainer.scrollTop = chatContainer.scrollHeight;
+    if (chatMessages) {
+        console.log('scrollToBottom called - scrollHeight:', chatMessages.scrollHeight);
+        console.log('clientHeight:', chatMessages.clientHeight);
+        console.log('offsetHeight:', chatMessages.offsetHeight);
+        console.log('CSS overflow:', window.getComputedStyle(chatMessages).overflow);
+        console.log('CSS overflowY:', window.getComputedStyle(chatMessages).overflowY);
+        console.log('Is scrollable?', chatMessages.scrollHeight > chatMessages.clientHeight);
+        
+        // Scroll after DOM update
+        setTimeout(() => {
+            if (chatMessages) {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                chatMessages.scrollTo(0, chatMessages.scrollHeight);
+                console.log('scrollToBottom completed - scrollTop:', chatMessages.scrollTop);
+            }
+        }, 10);
     }
 }
 
@@ -1305,116 +1190,3 @@ function saveToFile(filename, content) {
     URL.revokeObjectURL(url);
 }
 
-// Call Groq API
-async function callGroqAPI(query) {
-    try {
-        // Parse the query to get the context
-        const queryData = JSON.parse(query);
-        const { task, preferences, availableClasses } = queryData;
-        
-        // Prepare simple text-based prompt
-        const systemPrompt = `You are a dance class assistant. Suggest the best matching classes from the given list based on user preferences.
-
-Return your response as JSON:
-{
-  "text": "Brief explanation of recommendations - if matchType is 'closest', explain what compromises were made",
-  "classes": ["list", "of", "class", "ids"],
-  "matchType": "direct" or "closest"
-}
-
-Use "direct" when classes perfectly match all criteria (age, style, day).
-Use "closest" when you had to compromise on style or day preferences but age still matches.
-
-IMPORTANT: If using "closest" match, your text must clearly explain what preferences couldn't be met exactly (e.g., "I couldn't find ballet classes on Mondays for your child's age, but here are some great ballet classes on other days" or "No hip hop classes available for 5-year-olds, but these classes accept similar ages and might be perfect").`;
-
-        // Format user preferences in simple text
-        const prefsText = `Child's Age: ${preferences.age}
-Dance Style Preference: ${preferences.style || 'Any style'}
-Day Preference: ${preferences.dayPreference || 'Any day'}`;
-
-        // Format classes in simple text
-        const classesText = availableClasses.map(cls => 
-            `Class ID: ${cls.id}
-Name: ${cls.name}
-Age Range: ${cls.ageRange}
-Day: ${cls.day}
-Time: ${cls.time}
-Description: ${cls.description}
----`
-        ).join('\n');
-
-        const userPrompt = `USER PREFERENCES:
-${prefsText}
-
-AVAILABLE CLASSES:
-${classesText}`;
-
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        
-        // Retry logic for API calls with longer delays for rate limits
-        const maxRetries = 2;
-        let retryCount = 0;
-        
-        while (retryCount <= maxRetries) {
-            try {
-                const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${window.appConfig.openRouterApiKey}`,
-                        'Content-Type': 'application/json',
-                        'HTTP-Referer': window.location.origin,
-                        'X-Title': 'Dance Studio Chat'
-                    },
-                    body: JSON.stringify({
-                        model: 'x-ai/grok-4-fast:free',
-                        messages: [
-                            { role: 'system', content: systemPrompt },
-                            { role: 'user', content: userPrompt }
-                        ],
-                        temperature: 0.7,
-                        max_tokens: 4096,
-                        response_format: { type: 'json_object' }
-                    })
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`API error: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                const responseContent = data.choices[0].message.content;
-                
-                
-                // Try to parse JSON, fallback if it's plain text
-                try {
-                    return JSON.parse(responseContent);
-                } catch (parseError) {
-                    return {
-                        text: responseContent,
-                        classes: [],
-                        matchType: "closest"
-                    };
-                }
-                
-            } catch (error) {
-                console.error(`Class recommendation API error (attempt ${retryCount + 1}):`, error);
-                retryCount++;
-
-                if (retryCount <= maxRetries) {
-                // Wait before retrying (exponential backoff)
-                const waitTime = Math.pow(2, retryCount) * 1000; // 2s, 4s
-                    await new Promise(resolve => setTimeout(resolve, waitTime));
-                }
-            }
-        }
-        
-        // All retries failed
-        throw new Error('Failed to get class recommendations after multiple attempts');
-    } catch (error) {
-        console.error('API call failed:', error);
-        return {
-            text: "I'm having trouble connecting to the class information right now. Here are all our available classes:",
-            classes: allClasses.map(c => c.name)
-        };
-    }
-}
